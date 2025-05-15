@@ -21,7 +21,7 @@ npm install
 npm start
 ```
 
-### ⚛️ 🖥️ Backend (Flask)
+### 🖥️ Backend (Flask)
 ```bash
 cd backend
 python3 -m venv venv

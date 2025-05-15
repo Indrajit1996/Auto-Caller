@@ -1,6 +1,15 @@
-# Auto-Caller
-Auto-Caller project
+# Auto Caller ID
 
+A full-stack web application built with **React** on the frontend and **Flask** (Python) on the backend. This app serves as a template/starter for projects that require a RESTful API and a responsive user interface.
+
+## 📦 Tech Stack
+
+- **Frontend:** React, JavaScript
+- **Backend:** Python, Flask
+- **Database:** SQLite
+- **Other Tools:** Git
+
+---
 
 ## 🚀 Getting Started
 

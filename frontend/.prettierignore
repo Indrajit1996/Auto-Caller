@@ -1,0 +1,10 @@
+# Ignore artifacts:
+build
+coverage
+
+# Ignore all node_modules folders
+node_modules
+
+# Ignore specific files
+*.min.js
+*.map

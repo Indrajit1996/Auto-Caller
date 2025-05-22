@@ -1,0 +1,87 @@
+services:
+  db:
+    container_name: "${STACK_NAME?Variable not set}-db"
+    image: postgres:17
+    expose:
+      - 5432
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
+    volumes:
+      - db-data:/var/lib/postgresql/data/pgdata
+    env_file:
+      - .env
+
+  prestart:
+    container_name: "${STACK_NAME?Variable not set}-prestart"
+    image: "${DOCKER_IMAGE_BACKEND?Variable not set}:${TAG-latest}"
+    build:
+      context: ./backend
+    depends_on:
+      db:
+        condition: service_healthy
+        restart: true
+    command: kcli server prestart
+    env_file:
+      - .env
+
+  backend:
+    container_name: "${STACK_NAME?Variable not set}-backend"
+    image: "${DOCKER_IMAGE_BACKEND?Variable not set}:${TAG-latest}"
+    expose:
+      - 8000
+    depends_on:
+      db:
+        condition: service_healthy
+        restart: true
+      prestart:
+        condition: service_completed_successfully
+    env_file:
+      - .env
+    build:
+      context: ./backend
+    develop:
+      watch:
+        - action: sync
+          path: ./backend
+          target: /app
+          ignore:
+            - .venv/
+            - logs/
+        - action: rebuild
+          path: ./backend/pyproject.toml
+        - action: rebuild
+          path: ./backend/uv.lock
+    volumes:
+      - ./backend/logs:/app/logs
+
+  frontend:
+    container_name: "${STACK_NAME?Variable not set}-frontend"
+    image: node:18-alpine
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    env_file:
+      - .env
+    ports:
+      - "5173:5173"
+    command: npm run dev -- --host
+
+
+  redis:
+    container_name: "${STACK_NAME?Variable not set}-redis"
+    image: redis:7.4.1
+    expose:
+      - 6379
+    env_file:
+      - .env
+    volumes:
+      - redis-data:/data
+
+volumes:
+  db-data:
+  redis-data:

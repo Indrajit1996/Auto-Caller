@@ -1,0 +1,40 @@
+services:
+  db:
+    restart: "on-failure"
+    ports:
+      - "${DB_PORT_DEV?Variable not set}:5432"
+
+  backend:
+    restart: "on-failure"
+    ports:
+      - "${BACKEND_WEB_PORT_DEV?Variable not set}:8000"
+
+  frontend:
+    restart: "on-failure"
+    ports:
+      - "${FRONTEND_WEB_PORT_DEV?Variable not set}:5173"
+    build:
+      dockerfile: Dockerfile
+      context: ./frontend
+    depends_on:
+      - backend
+    environment:
+      - PNPM_STORE_PATH=/app/.pnpm-store
+
+  mailpit:
+    restart: "on-failure"
+    container_name: "${STACK_NAME?Variable not set}-mailpit"
+    image: axllent/mailpit
+    volumes:
+      - ./mailpit:/data
+    ports:
+      - "${MAILPIT_WEB_PORT_DEV?Variable not set}:8025"
+      - "${MAILPIT_SMTP_PORT_DEV?Variable not set}:1025"
+    environment:
+      MP_MAX_MESSAGES: 5000
+      MP_DATABASE: /data/mailpit.db
+
+  redis:
+    restart: "on-failure"
+    ports:
+      - "${REDIS_PORT_DEV?Variable not set}:6379"

@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+spec:
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+      - name: frontend
+        image: ghcr.io/dtnetwork/keystone-dev/frontend:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 5173
+        env:
+          - name: POSTGRES_USER
+            valueFrom:
+              configMapKeyRef:
+                name: default-config-map
+                key: POSTGRES_USER
+          - name: POSTGRES_PASSWORD
+            valueFrom:
+              configMapKeyRef:
+                name: default-config-map
+                key: POSTGRES_PASSWORD
+          - name: POSTGRES_DB
+            valueFrom:
+              configMapKeyRef:
+                name: default-config-map
+                key: POSTGRES_DB
+          - name: VITE_APP_NAME
+            valueFrom:
+              configMapKeyRef:
+                name: default-config-map
+                key: VITE_APP_NAME
+          - name: VITE_API_URL_DEV
+            valueFrom:
+              configMapKeyRef:
+                name: default-config-map
+                key: VITE_API_URL_DEV
+          - name: VITE_SEVEN_SCREEN_DASHBOARD_LAYOUT_ENABLED
+            valueFrom:
+              configMapKeyRef:
+                name: default-config-map
+                key: VITE_SEVEN_SCREEN_DASHBOARD_LAYOUT_ENABLED
+          - name: POSTGRES_SERVER
+            valueFrom:
+              configMapKeyRef:
+                name: default-config-map
+                key: POSTGRES_SERVER
+          - name: POSTGRES_PORT
+            valueFrom:
+              configMapKeyRef:
+                name: default-config-map
+                key: POSTGRES_PORT
+        resources:
+          requests:
+            cpu: "10m"
+            memory: "20Mi"
+          limits:
+            cpu: "50m"
+            memory: "200Mi"
+      imagePullSecrets:
+      - name: default-registry-creds

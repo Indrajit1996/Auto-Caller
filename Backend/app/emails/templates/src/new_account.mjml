@@ -1,0 +1,26 @@
+<mjml>
+  <mj-include path="./base/attributes.mjml" />
+  <mj-body css-class="email-wrapper">
+  <mj-include path="./base/header.mjml" />
+    <mj-section>
+      <mj-column>
+          <mj-text>
+            <h3>{{ project_name }} - New Account</h3>
+            <p>Welcome to your new account!</p>
+            <p>Here are your account details:</p>
+            <p>Username: {{ username }}</p>
+            <p>Password: {{ password }}</p>
+          </mj-text>
+          <mj-button mj-class="button" href="{{ link }}">Go to Dashboard</mj-button>
+          <mj-text>
+            <p>If you’re having trouble clicking the button, copy and paste the URL below into your web browser.</p>
+            <p><a href="{{ link }}">{{ link }}</a></p>
+            <p>Thanks,<br>The Decision Theater Team</br></p>
+          </mj-text>
+          <mj-text>{{ project_name }}</mj-text>
+        </mj-column>
+        </mj-column>
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>

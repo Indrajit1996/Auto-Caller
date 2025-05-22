@@ -1,0 +1,13 @@
+.container {
+  width: 100%;
+  height: 100%;
+}
+
+.main {
+  background-image: linear-gradient(to bottom, #00599b, #002d4e);
+  color: #fff;
+  width: 100%;
+  height: calc(100% - 83px);
+  text-align: center;
+  align-content: center;
+}

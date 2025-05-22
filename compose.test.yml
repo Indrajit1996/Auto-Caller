@@ -1,0 +1,100 @@
+services:
+  db:
+    container_name: "${STACK_NAME?Variable not set}-db-test"
+    hostname: "${STACK_NAME?Variable not set}-db-test"
+    networks:
+      - test-network
+
+  redis:
+    container_name: "${STACK_NAME?Variable not set}-redis-test"
+    hostname: "${STACK_NAME?Variable not set}-redis-test"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
+    networks:
+      - test-network
+
+  prestart:
+    container_name: "${STACK_NAME?Variable not set}-prestart-test"
+    environment:
+      - POSTGRES_SERVER=${STACK_NAME?Variable not set}-db-test
+      - REDIS_SERVER=${STACK_NAME?Variable not set}-redis-test
+    networks:
+      - test-network
+
+  frontend:
+    profiles:
+      - disabled
+
+  backend:
+    container_name: "${STACK_NAME?Variable not set}-backend-test"
+    image: "${DOCKER_IMAGE_BACKEND?Variable not set}:${TAG:-test}"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend/app:/app/app
+      - ./backend/data_pipeline:/app/data_pipeline
+      - ./backend/tests:/app/tests
+      - ./backend/test-results:/app/test-results
+      - ./backend/test-results/coverage:/app/coverage
+    environment:
+      - ENVIRONMENT=testing
+      - POSTGRES_SERVER=${STACK_NAME?Variable not set}-db-test
+      - REDIS_SERVER=${STACK_NAME?Variable not set}-redis-test
+      - REDIS_PORT=6379
+      - CACHE_ENABLED=false
+      - LOG_LEVEL=DEBUG
+      - PYTHONPATH=/app
+    networks:
+      - test-network
+    command: pytest -v --cov=app --cov-report=html:/app/test-results/coverage --cov-report=xml:/app/test-results/coverage/coverage.xml --html=/app/test-results/report.html --self-contained-html tests/ .
+
+  test-report:
+    container_name: "${STACK_NAME?Variable not set}-test-report"
+    image: python:3.12-alpine
+    volumes:
+      - ./backend/test-results:/app/test-results
+    ports:
+      - "2001:9000"
+    command: >
+      sh -c "
+        cd /app &&
+        echo '<html><body><h1>Test Reports</h1><ul>
+              <li><a href=\"/app/test-results/report.html\">Backend Test Results</a></li>
+              <li><a href=\"/app/test-results/coverage/index.html\">Backend Coverage Report</a></li>
+              </ul></body></html>' > /app/index.html &&
+        python -m http.server 9000
+      "
+    networks:
+      - test-network
+
+  mailpit:
+    restart: "on-failure"
+    container_name: "${STACK_NAME?Variable not set}-mailpit-test"
+    hostname: "${STACK_NAME?Variable not set}-mailpit-test"
+    image: axllent/mailpit
+    volumes:
+      - ./mailpit-test:/data
+    ports:
+      - "${MAILPIT_WEB_PORT_DEV?Variable not set}:8025"
+      - "${MAILPIT_SMTP_PORT_DEV?Variable not set}:1025"
+    environment:
+      MP_MAX_MESSAGES: 5000
+      MP_DATABASE: /data/mailpit.db
+    networks:
+      - test-network
+
+networks:
+  test-network:
+    name: "${STACK_NAME?Variable not set}-test-network"
+    driver: bridge
+
+volumes:
+  db-test-data:
+    name: "${STACK_NAME?Variable not set}-db-test-data"

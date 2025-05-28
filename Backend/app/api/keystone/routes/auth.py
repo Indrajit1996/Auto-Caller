@@ -115,6 +115,7 @@ async def register_user(
         await session.commit()
 
     if user and user.status == UserStatus.PENDING_EMAIL_VERIFICATION:
+        logger.info(f"Email Invitation pending")
         await send_verification_email(user=user, background_tasks=background_tasks)
 
     background_tasks.add_task(
@@ -352,6 +353,7 @@ async def reset_password(session: AsyncSessionDep, body: NewPassword) -> Message
     password_reset_record = await get_password_reset_record_by_token(
         session=session, token=body.token
     )
+    logger.info('password_reset_record', password_reset_record)
 
     if not password_reset_record:
         raise HTTPException(status_code=400, detail="Invalid token")
@@ -359,7 +361,7 @@ async def reset_password(session: AsyncSessionDep, body: NewPassword) -> Message
     user = await get_user_by_email(
         session=session, email=password_reset_record.user.email
     )
-
+    logger.info('user info', user)
     if not user:
         raise HTTPException(
             status_code=404,
@@ -400,6 +402,7 @@ async def verify_email(session: AsyncSessionDep, token: str) -> Message:
 
     try:
         user = await get_user_by_email_verification_token(token=token, session=session)
+        logger.info('inside verify-email', user)
     except Exception:
         raise HTTPException(
             status_code=404,
@@ -409,6 +412,7 @@ async def verify_email(session: AsyncSessionDep, token: str) -> Message:
     if not user:
         raise HTTPException(status_code=404, detail="Invalid verification token")
 
+    print('user information', user)
     if user.status == UserStatus.PENDING_EMAIL_VERIFICATION:
         user.status = UserStatus.ACTIVE
         user.email_verification_token = None

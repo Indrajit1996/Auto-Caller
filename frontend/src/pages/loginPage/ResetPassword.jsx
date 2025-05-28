@@ -1,83 +1,128 @@
 // src/ResetPassword.js
 import React, { useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import './Login.css';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import {
+    Grid,
+    TextField,
+    Button,
+    Typography,
+    Box,
+} from '@mui/material';
+import { useSnackbar } from '@/hooks/useSnackbar';
+import authApi from '@/api/auth';
+import { ROUTES } from '@/constants/routeConstants';
 
 export default function ResetPassword() {
     const [searchParams] = useSearchParams();
-    const token = searchParams.get('token') || '';
+    // const token = searchParams.get('token') || '';
 
-    const [newUsername, setNewUsername] = useState('');
-    const [confirmUsername, setConfirmUsername] = useState('');
+    // const [newUsername, setNewUsername] = useState('');
+    // const [confirmUsername, setConfirmUsername] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [message, setMessage] = useState('');
+    const { showSuccess, showError } = useSnackbar();
+    const navigate = useNavigate();
 
     const handleReset = async (e) => {
         e.preventDefault();
-
-        // Validation
-        if (newUsername !== confirmUsername) {
-            setMessage('Usernames do not match.');
-            return;
-        }
-
         if (newPassword !== confirmPassword) {
             setMessage('Passwords do not match.');
             return;
         }
-
         try {
-            const res = await fetch('/api/reset-password', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ token, newUsername, newPassword }),
+            const token = searchParams.get('token');
+            if (!token) {
+              showError('Reset token is missing');
+              return;
+            }
+            await authApi.resetPassword({
+              token,
+              new_password: newPassword,
             });
-
-            if (!res.ok) throw new Error(`Server error ${res.status}`);
-            const data = await res.json();
-            setMessage(data.message);
-        } catch (err) {
-            console.error('Reset error:', err);
-            setMessage('Unable to reset password. Please try again.');
-        }
+            await showSuccess('Password reset successfully');
+            await setTimeout(() => {
+                navigate(ROUTES.AUTH.LOGIN);
+            }, 2000)
+          } catch (error) {
+            showError(error?.response?.data?.detail || 'Failed to reset password');
+          }
     };
 
     return (
-        <div className="login-container">
-            <h2>Set New Username & Password</h2>
-            <form onSubmit={handleReset}>
-                <input
-                    type="text"
-                    value={newUsername}
-                    onChange={e => setNewUsername(e.target.value)}
-                    placeholder="New Username"
-                    required
-                />
-                <input
-                    type="text"
-                    value={confirmUsername}
-                    onChange={e => setConfirmUsername(e.target.value)}
-                    placeholder="Confirm Username"
-                    required
-                />
-                <input
-                    type="password"
-                    value={newPassword}
-                    onChange={e => setNewPassword(e.target.value)}
-                    placeholder="New Password"
-                    required
-                />
-                <input
-                    type="password"
-                    value={confirmPassword}
-                    onChange={e => setConfirmPassword(e.target.value)}
-                    placeholder="Confirm Password"
-                    required
-                />
-                <button type="submit">Update Credentials</button>
-            </form>
-            {message && <p className="message">{message}</p>}
-        </div>
+        <Grid
+            container
+            justifyContent="center"
+            alignItems="center"
+            minHeight="100vh"
+            sx={{
+                background: 'linear-gradient(to right, #e0eafc, #cfdef3)',
+                padding: 2,
+            }}
+        >
+            <Grid
+                item
+                sx={{
+                    width: '500px',
+                    backgroundColor: 'white',
+                    padding: 4,
+                    borderRadius: 2,
+                    boxShadow: 3,
+                }}
+            >
+                <Typography component="h1" variant="h5" align="center" sx={{ mb: 4 }}>
+                    Set New Username & Password
+                </Typography>
+                <Box component="form" noValidate>
+                    <Grid container spacing={2} style={{ display: 'block' }}>
+                        <Grid item xs={12} pb={2}>
+                            <TextField
+                                required
+                                fullWidth
+                                label="New Password"
+                                type="password"
+                                value={newPassword}
+                                onChange={(e) => {
+                                    setNewPassword(e.target.value); 
+                                    setMessage('');
+                                }}
+                            />
+                        </Grid>
+                        <Grid item xs={12} pb={2}>
+                            <TextField
+                                required
+                                fullWidth
+                                label="Confirm Password"
+                                type="password"
+                                value={confirmPassword}
+                                onChange={(e) => {
+                                    setConfirmPassword(e.target.value);
+                                    setMessage('');
+                                }}
+                            />
+                        </Grid>
+                        <Grid item xs={12}>
+                            <Button
+                                type="submit"
+                                fullWidth
+                                variant="contained"
+                                color="primary"
+                                sx={{ mt: 1 }}
+                                onClick={handleReset}
+                            >
+                                Update
+                            </Button>
+                        </Grid>
+                        {message && (
+                            <Grid item xs={12}>
+                                <Typography color="error" align="center" sx={{ mt: 2 }}>
+                                    {message}
+                                </Typography>
+                            </Grid>
+                        )}
+                    </Grid>
+                </Box>
+            </Grid>
+        </Grid>
     );
 }

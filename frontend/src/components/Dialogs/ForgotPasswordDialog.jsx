@@ -34,16 +34,16 @@ export const ForgotPasswordDialog = ({ open, onClose }) => {
     try {
       const response = await authApi.passwordRecovery(data.email);
       showSuccess(response.data.message);
-      reset();
-      onClose();
+      // reset();
+      // onClose();
     } catch (error) {
       if (error.response) {
         if (error.response.status === 404) {
-          showError(error.response.data.detail);
-        } else if (error.response.status === 422) {
+          showError(error?.response?.data?.detail);
+        } else if (error?.response?.status === 422) {
           showError('Invalid email format');
         } else {
-          showError(error.response.data.detail || 'An error occurred');
+          showError(error?.response?.data?.detail || 'An error occurred');
         }
       } else {
         showError('Failed to connect to the server. Please try again');

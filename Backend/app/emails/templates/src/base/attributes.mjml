@@ -1,0 +1,6 @@
+<mj-head>
+<mj-attributes>
+    <mj-all font-family="Arial, 'Helvetica Neue', Helvetica, sans-serif" color="#839197"></mj-all>
+    <mj-class name="button" display="inline-block" background-color="#0047AB" color="#FFFFFF" border-radius="3px" font-size="15px" line-height="15px" text-align="center" text-decoration="none" />
+</mj-attributes>
+</mj-head>

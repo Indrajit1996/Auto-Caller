@@ -1,0 +1,43 @@
+export const API_ROUTES = Object.freeze({
+  AUTH: {
+    LOGIN: '/login/access-token',
+    TEST_TOKEN: '/login/test-token',
+    PASSWORD_RECOVERY: (email) => `/password-recovery/${email}`,
+    RESET_PASSWORD: '/reset-password',
+    REGISTER_USER: '/register',
+    GET_ME: '/me',
+    DEACTIVATE_ACCOUNT: '/me/deactivate',
+    UPDATE_PASSWORD: '/me/password',
+    VERIFY_EMAIL: (token) => `/verify-email/${token}`,
+    RESEND_VERIFICATION_EMAIL: '/verify-email/resend',
+  },
+  INVITATIONS: {
+    INVITATIONS_DATATABLE: '/invitations/datatable',
+    CREATE_INVITATION: '/invitations/',
+    INVITATION_TYPE_COUNTS: '/invitations/type-counts',
+    GET_INVITATION: (id) => `/invitations/${id}`,
+    DEACTIVATE_INIVITATION: (id) => `/invitations/${id}/deactivate`,
+    RESEND_INVITATION: (id) => `/invitations/${id}/resend`,
+    GET_INVITATION_BY_TOKEN: (token) => `/invitations/token/${token}`,
+  },
+  USERS: {
+    ADD_USER: '/users/',
+    USER: (user_id) => `/users/${user_id}`,
+    USERS_DATATABLE: '/users/datatable',
+    UPDATE_STATUS: (user_id) => `/users/${user_id}/status`,
+    STAUTS_COUNTS: '/users/status-counts',
+    EXPORT_USER_DATA: '/users/export',
+  },
+  GROUPS: {
+    GROUPS_DATATABLE: '/groups/datatable',
+    GET_GROUPS: '/groups',
+    CREATE_GROUP: '/groups',
+    GET_GROUP_USERS: '/users/datatable',
+    REMOVE_USER_FROM_GROUP: ({ groupId, userId }) => `/groups/${groupId}/users/${userId}`,
+    GET_AVAILABLE_USERS: '/users/datatable',
+    ADD_USERS_TO_GROUP: (groupId) => `/groups/${groupId}/users`,
+  },
+  NOTIFICATIONS: {
+    BASE: '/notifications',
+  },
+});

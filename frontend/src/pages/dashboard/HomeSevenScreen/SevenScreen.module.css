@@ -1,0 +1,25 @@
+.containerHorizontal {
+  height: 1080px;
+  width: 13440px;
+  position: relative;
+}
+
+.containerVertical {
+  height: 7560px;
+  width: 1920px;
+  position: relative;
+}
+
+.screenHorizontal {
+  width: 1920px;
+  height: 100%;
+  display: inline-block;
+  vertical-align: top;
+}
+
+.screenVertical {
+  height: 1080px;
+  width: 100%;
+  display: inline-block;
+  vertical-align: top;
+}

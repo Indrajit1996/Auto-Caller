@@ -1,0 +1,23 @@
+<mjml>
+  <mj-include path="./base/attributes.mjml" />
+  <mj-body>
+    <mj-include path="./base/header.mjml" />
+    <mj-section>
+      <mj-column>
+          <mj-text>
+            <h3>{{ project_name }} - Email Verification</h3>
+            <p>Hello {{ username }},</p>
+            <p>Thank you for registering. Please verify your email address by clicking the button below:</p>
+          </mj-text>
+          <mj-button mj-class="button" href="{{ verification_link }}">Verify Email</mj-button>
+          <mj-text>
+            <p>Or copy and paste the following link into your browser:</p>
+            <p><a href="{{ verification_link }}">{{ verification_link }}</a></p>
+            <p>If you didn't register for an account with us, please disregard this email.</p>
+            <p>Thanks,<br>The Auto Caller Team</br></p>
+          </mj-text>
+          <mj-text>{{ project_name }}</mj-text>
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>

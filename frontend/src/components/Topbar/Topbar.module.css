@@ -1,0 +1,24 @@
+.container {
+  width: 1080px;
+}
+
+.menuButton {
+  color: white !important;
+  background: #013358 !important;
+  height: 83px !important;
+  cursor: pointer;
+  padding: 10px 15px !important;
+  border-radius: 0 !important;
+  position: fixed !important;
+  z-index: 1300 !important;
+}
+
+.menuIcon {
+  font-size: 60px !important;
+  color: white;
+  background: #013358;
+  height: 83px;
+  cursor: pointer;
+  padding: 10px 15px;
+  border-radius: 0;
+}

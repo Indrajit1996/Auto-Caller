@@ -1,70 +1,39 @@
-# Getting Started with Create React App
+# Keystone Frontend
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+### Install packages
 
-## Available Scripts
+```
+docker exec frontend-container pnpm add package-name
+```
 
-In the project directory, you can run:
+## Layouts
 
-### `npm start`
+We utilize different layouts to manage the structure and presentation of various screens. The layouts include:
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+### 1. **Admin Layout**
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+The `AdminLayout` checks if the user is authenticated and whether they have superuser privileges. If the user is not authenticated, they are redirected to the login page. If the user lack superuser access, a forbidden error page is displayed.
 
-### `npm test`
+### 2. **App Layout**
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+The `AppLayout` serves as the main layout for the application, providing a consistent header and main content area. It wraps the main application components and can include a sidebar for navigation. This layout is ideal for general application views that require a standard structure.
 
-### `npm run build`
+### 3. **Auth Layout**
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+The `AuthLayout` wraps auth-related pages, such as login and registration. It checks if the user is already authenticated; if so, they are redirected to the logged-in home page.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### 4. **Dashboard Layout**
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+The `DashboardLayout` accommodates both single-screen and seven-screen layouts. It checks the environment variable `VITE_SEVEN_SCREEN_DASHBOARD_LAYOUT_ENABLED` to determine which layout to render.
 
-### `npm run eject`
+### 5. **Protected Layout**
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+The `ProtectedLayout` ensures only authenticated users can access certain routes.
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+### When to Use Each Layout
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+- **Use `AdminLayout`** for administrative interfaces requiring superuser access.
+- **Use `AppLayout`** for general application views that need a consistent structure.
+- **Use `AuthLayout`** for authentication-related pages to manage user login and registration flows.
+- **Update the env variable `VITE_SEVEN_SCREEN_DASHBOARD_LAYOUT_ENABLED` to render a specific `DashboardLayout`**.
+- **Use `ProtectedLayout`** to secure routes and ensure that only authenticated users can access specific areas of the application.

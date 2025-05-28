@@ -53,7 +53,7 @@ async def send_invitation_email(
 
     inviter_name = f"{inviter.first_name} {inviter.last_name}".strip()
     if not inviter_name:
-        inviter_name = "ASU Decision Theater"
+        inviter_name = "ASU Auto-Caller"
 
     email = render_invitation_email(
         inviter_name=inviter_name,

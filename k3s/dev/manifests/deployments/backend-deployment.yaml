@@ -1,0 +1,92 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+spec:
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+      - name: backend
+        image: ghcr.io/dtnetwork/keystone-dev/backend:latest
+        imagePullPolicy: Always
+        env:
+          - name: POSTGRES_USER
+            valueFrom:
+              configMapKeyRef:
+                name: default-config-map
+                key: POSTGRES_USER
+          - name: POSTGRES_PASSWORD
+            valueFrom:
+              configMapKeyRef:
+                name: default-config-map
+                key: POSTGRES_PASSWORD
+          - name: POSTGRES_DB
+            valueFrom:
+              configMapKeyRef:
+                name: default-config-map
+                key: POSTGRES_DB
+          - name: PROJECT_NAME
+            valueFrom:
+              configMapKeyRef:
+                name: default-config-map
+                key: PROJECT_NAME
+          - name: SECRET_KEY
+            valueFrom:
+              configMapKeyRef:
+                name: default-config-map
+                key: SECRET_KEY
+          - name: FIRST_SUPERUSER
+            valueFrom:
+              configMapKeyRef:
+                name: default-config-map
+                key: FIRST_SUPERUSER
+          - name: FIRST_SUPERUSER_PASSWORD
+            valueFrom:
+              configMapKeyRef:
+                name: default-config-map
+                key: FIRST_SUPERUSER_PASSWORD
+          - name: PASSWORD_RESET_TOKEN_EXPIRY_IN_HOURS
+            valueFrom:
+              configMapKeyRef:
+                name: default-config-map
+                key: PASSWORD_RESET_TOKEN_EXPIRY_IN_HOURS
+          - name: INVITATION_EXPIRY_IN_HOURS
+            valueFrom:
+              configMapKeyRef:
+                name: default-config-map
+                key: INVITATION_EXPIRY_IN_HOURS
+          - name: POSTGRES_SERVER
+            valueFrom:
+              configMapKeyRef:
+                name: default-config-map
+                key: POSTGRES_SERVER
+          - name: POSTGRES_PORT
+            valueFrom:
+              configMapKeyRef:
+                name: default-config-map
+                key: POSTGRES_PORT
+          - name: REDIS_SERVER
+            valueFrom:
+              configMapKeyRef:
+                name: default-config-map
+                key: REDIS_SERVER
+          - name: REDIS_PORT
+            value: "6379"
+        ports:
+        - containerPort: 8000
+        resources:
+          requests:
+            cpu: "50m"
+            memory: "400Mi"
+          limits:
+            cpu: "1"
+            memory: "2Gi"
+      imagePullSecrets:
+      - name: default-registry-creds

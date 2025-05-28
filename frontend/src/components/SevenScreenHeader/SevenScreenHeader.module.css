@@ -1,0 +1,47 @@
+.header {
+  height: 83px;
+  background-color: #013358;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  position: relative;
+}
+
+.title.title {
+  width: 730px;
+  padding: 0px 80px;
+  font-size: 35px;
+  font-weight: bold;
+  font-style: normal;
+  font-stretch: normal;
+  line-height: 1.21;
+  letter-spacing: 1.53px;
+  text-align: left;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  position: relative;
+  left: 20px;
+}
+
+.actionBox {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-right: 50px;
+  width: 134px;
+  justify-content: space-between;
+}
+
+.iconButton.iconButton {
+  color: #ffffff;
+  background: #013358;
+  height: 83px;
+  cursor: pointer;
+  padding: 10px 10px;
+  border-radius: 0;
+}
+
+.iconButton.iconButton svg {
+  color: #ffffff;
+}

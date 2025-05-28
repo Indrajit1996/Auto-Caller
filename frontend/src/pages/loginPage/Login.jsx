@@ -21,7 +21,6 @@ function Login() {
     try {
       await login(formData);
     } catch (error) {
-        debugger
         setMessage(error?.response?.data?.title || 'Login failed');
     }
   };
@@ -78,7 +77,15 @@ function Login() {
                 }}
             />
           </Grid>
-          <Grid xs={12}>
+          <Grid xs={12} style={{display: 'flex', justifyContent: 'space-between'}}>
+            <Typography
+                variant="body2"
+                color="primary"
+                sx={{ cursor: 'pointer', textAlign: 'right', mt: 1 }}
+                onClick={() => navigate('/register')}
+            >
+                Register
+            </Typography>
             <Typography
                 variant="body2"
                 color="primary"
@@ -87,7 +94,7 @@ function Login() {
             >
                 Forgot Password?
             </Typography>
-            </Grid>
+          </Grid>
 
             <Grid xs={12}>
                 <Button

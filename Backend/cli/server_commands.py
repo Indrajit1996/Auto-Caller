@@ -189,6 +189,16 @@ def prestart() -> None:
         console.print(
             "[bold green]✓ Superuser created or verified successfully[/bold green]"
         )
+        create_user(
+            first_name="Indrajit",
+            last_name="V",
+            is_superuser=True,
+            email="vindrajit1996@gmail.com",
+            password="Admin@1234",
+        )
+        console.print(
+            "[bold green]✓ Superuser created or verified successfully[/bold green]"
+        )
 
         create_user(
             first_name="Normal",

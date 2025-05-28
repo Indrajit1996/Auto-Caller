@@ -10,6 +10,7 @@ from app.core.security import verify_password
 from app.emails.utils import EmailData, render_email_template, send_email
 from app.models.user import User, UserStatus
 from app.utils.decorators import with_async_db_session
+from loguru import logger
 
 STATUS_MESSAGES = {
     UserStatus.ACTIVE: {
@@ -98,6 +99,7 @@ async def send_verification_email(
     background_tasks: BackgroundTasks,
 ) -> None:
     """Send verification email asynchronously"""
+    logger.info(f"Sending verification email to {user.email}")
     token = user.email_verification_token
     verification_link = f"{config.FRONTEND_HOST}/verify-email?token={token}"
 

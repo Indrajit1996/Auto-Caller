@@ -14,7 +14,7 @@
             <p>Or copy and paste the following link into your browser:</p>
             <p><a href="{{ verification_link }}">{{ verification_link }}</a></p>
             <p>If you didn't register for an account with us, please disregard this email.</p>
-            <p>Thanks,<br>The Decision Theater Team</br></p>
+            <p>Thanks,<br>The Auto Caller Team</br></p>
           </mj-text>
           <mj-text>{{ project_name }}</mj-text>
       </mj-column>

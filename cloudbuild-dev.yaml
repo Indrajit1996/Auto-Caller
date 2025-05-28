@@ -1,0 +1,58 @@
+steps:
+  - id: authenticate-ghcr
+    name: 'gcr.io/cloud-builders/docker'
+    args: [
+      'login', 
+      'ghcr.io', 
+      '-u', 'mnthomp2', 
+      '-p', '$_GITHUB_TOKEN'
+    ]
+
+  - id: build-frontend
+    name: 'gcr.io/cloud-builders/docker'
+    args: [
+      'build',
+      '-t', 'ghcr.io/dtnetwork/keystone-dev/frontend:$COMMIT_SHA',
+      '-t', 'ghcr.io/dtnetwork/keystone-dev/frontend:latest',
+      '-f', './frontend/Dockerfile.prod',
+      './frontend'
+    ]
+
+  - id: build-backend
+    name: 'gcr.io/cloud-builders/docker'
+    env: ['DOCKER_BUILDKIT=1']
+    args: [
+      'build',
+      '-t', 'ghcr.io/dtnetwork/keystone-dev/backend:$COMMIT_SHA',
+      '-t', 'ghcr.io/dtnetwork/keystone-dev/backend:latest',
+      '-f', './backend/Dockerfile',
+      './backend'
+    ]
+
+  - id: push-frontend
+    name: 'gcr.io/cloud-builders/docker'
+    args: [
+      'push', 
+      'ghcr.io/dtnetwork/keystone-dev/frontend:$COMMIT_SHA'
+    ]
+
+  - id: push-frontend-latest
+    name: 'gcr.io/cloud-builders/docker'
+    args: [
+      'push', 
+      'ghcr.io/dtnetwork/keystone-dev/frontend:latest'
+    ]
+
+  - id: push-backend
+    name: 'gcr.io/cloud-builders/docker'
+    args: [
+      'push', 
+      'ghcr.io/dtnetwork/keystone-dev/backend:$COMMIT_SHA'
+    ]
+
+  - id: push-backend-latest
+    name: 'gcr.io/cloud-builders/docker'
+    args: [
+      'push', 
+      'ghcr.io/dtnetwork/keystone-dev/backend:latest'
+    ]

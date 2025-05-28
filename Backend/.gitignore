@@ -1,21 +1,13 @@
-# Python
-__pycache__/
+__pycache__
+app.egg-info
 *.pyc
-*.pyo
-*.pyd
-
-# Environment
-.env
-.venv/
-env/
-venv/
-
-# VSCode
-.vscode/
-
-# DB
-*.sqlite3
-*.db
-
-# OS
+.mypy_cache
+.coverage
+htmlcov
+.cache
+.venv
+.pytest_cache
 .DS_Store
+logs/
+backups/
+test-results/

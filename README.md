@@ -100,7 +100,7 @@ REDIS_PASSWORD=                 # Redis password (leave empty for no password)
 REDIS_DB=0                      # Redis database number
 ```
 
-For more detailed information about Redis configuration and usage, refer to the [Backend Development documentation](backend/README.md).
+For more detailed information about Redis configuration and usage, refer to the [Backend Development documentation](Backend/README.md).
 
 ### Docker Compose Configuration
 

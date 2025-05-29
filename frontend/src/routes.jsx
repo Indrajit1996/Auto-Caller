@@ -30,25 +30,25 @@ const authRoutes = () => {
   );
 };
 
-// const adminRoutes = () => {
-//   return (
-//     <Route element={<AdminLayout />}>
-//       <Route path={ROUTES.ADMIN.USERS} element={<Users />} />
-//       <Route path={ROUTES.ADMIN.USERS_DETAIL} element={<UserDetail />} />
-//       <Route path={ROUTES.ADMIN.INVITES} element={<Invites />} />
-//       <Route path={ROUTES.ADMIN.GROUPS} element={<Groups />} />
-//       <Route path={ROUTES.ADMIN.GROUP_DETAIL} element={<GroupDetail />} />
-//     </Route>
-//   );
-// };
+const adminRoutes = () => {
+  return (
+    <Route element={<AdminLayout />}>
+      <Route path={ROUTES.ADMIN.USERS} element={<Users />} />
+      <Route path={ROUTES.ADMIN.USERS_DETAIL} element={<UserDetail />} />
+      <Route path={ROUTES.ADMIN.INVITES} element={<Invites />} />
+      <Route path={ROUTES.ADMIN.GROUPS} element={<Groups />} />
+      <Route path={ROUTES.ADMIN.GROUP_DETAIL} element={<GroupDetail />} />
+    </Route>
+  );
+};
 
 export const Router = () => {
   return (
     <BrowserRouter>
       <Routes>
         {authRoutes()}
-        {/* {adminRoutes()} */}
-        {/* <Route path={ROUTES.LANDING_PAGE} element={<LandingPage />} />
+        {adminRoutes()}
+        <Route path={ROUTES.LANDING_PAGE} element={<LandingPage />} />
         <Route element={<DashboardLayout />}>
           <Route path={ROUTES.LOGGED_IN_HOME} element={<Dashboard />} />
         </Route>
@@ -62,7 +62,7 @@ export const Router = () => {
             </ProtectedLayout>
           }
         />
-        <Route path='*' element={<ErrorPage code='404' />} /> */}
+        <Route path='*' element={<ErrorPage code='404' />} />
       </Routes>
     </BrowserRouter>
   );

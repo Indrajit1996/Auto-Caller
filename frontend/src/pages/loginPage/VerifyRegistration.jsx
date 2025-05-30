@@ -237,7 +237,7 @@ const VerifyEmail = () => {
         >
             {verified ? <VerifiedCard /> : invalidToken && <InvalidTokenAlert />}
             {/* {invalidToken && <InvalidTokenAlert />} */}
-            {showResendVerification && <ResendVerificationCard userEmail={userEmail} />}
+            {showResendVerification && !verified ? <ResendVerificationCard userEmail={userEmail} /> : null}
         </Grid>
     </Grid>
   );

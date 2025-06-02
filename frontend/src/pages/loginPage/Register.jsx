@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-
 import { yupResolver } from '@hookform/resolvers/yup';
 import { Button, Divider, Grid2 as Grid, TextField, Typography } from '@mui/material';
 import { useForm } from 'react-hook-form';
@@ -66,7 +65,7 @@ const Register = () => {
     };
 
     fetchInvitation();
-  }, [token, navigate, setValue]);
+  }, [token, navigate, setValue, showError]);
 
   const onSubmit = async (data) => {
     if (isValid) {
@@ -108,113 +107,121 @@ const Register = () => {
 
   return (
     <Grid
-    container
-    justifyContent="center"
-    alignItems="center"
-    minHeight="100vh"
-    sx={{
-      background: 'linear-gradient(to right, #e0eafc, #cfdef3)',
-      padding: 2,
-    }}
-  >
-    <Grid
-      item
+      container
+      justifyContent="center"
+      alignItems="center"
+      minHeight="100vh"
       sx={{
-        width: '500px',
-        height: '500px',
-        backgroundColor: 'white',
-        padding: 4,
-        borderRadius: 2,
-        boxShadow: 3,
-        overflowY: 'auto', // Optional: scroll if content overflows
+        background: 'linear-gradient(to right, #e0eafc, #cfdef3)',
+        padding: 2,
       }}
     >
-      <Typography component='h1' variant='h5' align='center' sx={{ mb: 4 }}>
-        Create a new account
-      </Typography>
-      <Grid container spacing={2} component='form' noValidate>
-        <Grid size={{ xs: 12, sm: 6 }}>
+      <Grid
+        item
+        sx={{
+          width: '500px',
+          height: '500px',
+          backgroundColor: 'white',
+          padding: 4,
+          borderRadius: 2,
+          boxShadow: 3,
+          overflowY: 'auto', // Optional: scroll if content overflows
+        }}
+      >
+        <Typography component="h1" variant="h5" align="center" sx={{ mb: 4 }}>
+          Create a new account
+        </Typography>
+        <Grid container spacing={2} component="form" noValidate onSubmit={handleSubmit(onSubmit)}>
+          <Grid size={{ xs: 12, sm: 6 }}>
+            <TextField
+              required
+              fullWidth
+              id="first_name"
+              label="First Name"
+              autoComplete="given-name"
+              autoFocus
+              error={!!errors.first_name}
+              helperText={errors.first_name?.message}
+              {...register('first_name')}
+            />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6 }}>
+            <TextField
+              required
+              fullWidth
+              id="last_name"
+              label="Last Name"
+              autoComplete="family-name"
+              error={!!errors.last_name}
+              helperText={errors.last_name?.message}
+              {...register('last_name')}
+            />
+          </Grid>
           <TextField
             required
             fullWidth
-            id='first_name'
-            label='First Name'
-            autoComplete='given-name'
-            autoFocus
-            error={!!errors.first_name}
-            helperText={errors.first_name?.message}
-            {...register('first_name')}
+            id="email"
+            label="Email Address"
+            autoComplete="email"
+            error={!!errors.email}
+            helperText={errors.email?.message}
+            disabled={emailDisabled}
+            slotProps={{
+              inputLabel: {
+                shrink: emailDisabled || undefined,
+              },
+            }}
+            placeholder="user@gmail.com"
+            {...register('email')}
           />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6 }}>
-          <TextField
+          <PasswordField
             required
             fullWidth
-            id='last_name'
-            label='Last Name'
-            autoComplete='family-name'
-            error={!!errors.last_name}
-            helperText={errors.last_name?.message}
-            {...register('last_name')}
+            label="Password"
+            error={!!errors.password}
+            helperText={errors.password?.message}
+            {...register('password')}
           />
+          <PasswordField
+            required
+            fullWidth
+            label="Confirm Password"
+            error={!!errors.confirmPassword}
+            helperText={errors.confirmPassword?.message}
+            {...register('confirmPassword')}
+          />
+          <Button
+            type="submit"
+            fullWidth
+            variant="contained"
+            color="primary"
+            sx={{ mt: 2 }}
+          >
+            Register
+          </Button>
+          <Divider sx={{ my: 2, width: '100%' }} />
+          <Button
+            variant="outlined"
+            color="neutral"
+            fullWidth
+            component={RouterLink}
+            to={ROUTES.AUTH.LOGIN}
+          >
+            Already have an account? Login
+          </Button>
+          {/* Back button at the bottom */}
+          <Button
+            variant="text"
+            fullWidth
+            onClick={() => navigate(-1)}
+            sx={{ mt: 1 }}
+          >
+            ← Back
+          </Button>
         </Grid>
-        <TextField
-          required
-          fullWidth
-          id='email'
-          label='Email Address'
-          autoComplete='email'
-          error={!!errors.email}
-          helperText={errors.email?.message}
-          disabled={emailDisabled}
-          slotProps={{
-            inputLabel: {
-              shrink: emailDisabled || undefined,
-            },
-          }}
-          placeholder='user@gmail.com'
-          {...register('email')}
-        />
-        <PasswordField
-          required
-          fullWidth
-          label='Password'
-          error={!!errors.password}
-          helperText={errors.password?.message}
-          {...register('password')}
-        />
-        <PasswordField
-          required
-          fullWidth
-          label='Confirm Password'
-          error={!!errors.confirmPassword}
-          helperText={errors.confirmPassword?.message}
-          {...register('confirmPassword')}
-        />
-        <Button
-          type='submit'
-          fullWidth
-          variant='contained'
-          color='primary'
-          onClick={handleSubmit(onSubmit)}
-          sx={{ mt: 2 }}
-        >
-          Register
-        </Button>
-        <Divider sx={{ my: 2, width: '100%' }} />
-        <Button
-          variant='outlined'
-          color='neutral'
-          fullWidth
-          component={RouterLink}
-          to={ROUTES.AUTH.LOGIN}
-        >
-          Already have an account? Login
-        </Button>
-      </Grid>
       </Grid>
     </Grid>
   );
 };
 
-export default Register
+export default Register;

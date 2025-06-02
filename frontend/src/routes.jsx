@@ -20,7 +20,7 @@ import { LandingPage } from '@/pages/landingPage';
 
 const authRoutes = () => {
   return (
-    <Route>
+    <Route element={<AuthLayout />}>
       <Route path={ROUTES.AUTH.LOGIN} element={<Login />} />
       <Route path={ROUTES.AUTH.REGISTER} element={<Register />} />
       <Route path={ROUTES.AUTH.RESET_PASSWORD} element={<ResetPassword />} />

@@ -32,9 +32,7 @@ function Login() {
       container
       justifyContent="center"
       alignItems="center"
-      minHeight="100vh"
       sx={{
-        background: 'linear-gradient(to right, #e0eafc, #cfdef3)',
         padding: 2,
       }}
     >

@@ -42,16 +42,15 @@ export default function ForgotPassword() {
       container
       justifyContent="center"
       alignItems="center"
-      minHeight="100vh"
       sx={{
-        background: 'linear-gradient(to right, #e0eafc, #cfdef3)',
         padding: 2,
       }}
     >
       <Grid
         item
         sx={{
-          width: '500px',
+          width: '100%',
+          maxWidth: 500,
           backgroundColor: 'white',
           padding: 4,
           borderRadius: 2,

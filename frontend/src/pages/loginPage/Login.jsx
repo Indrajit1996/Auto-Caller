@@ -5,6 +5,7 @@ import { Button, Divider, Grid2 as Grid, TextField, Typography } from '@mui/mate
 
 import { useAuth } from '@/hooks';
 import { ROUTES } from '@/constants/routeConstants'
+import PasswordField from '@/components/PasswordField';
 
 function Login() {
   const [username, setUsername] = useState('');
@@ -20,9 +21,9 @@ function Login() {
     formData.append('password', password);
     try {
       await login(formData);
-      navigate(ROUTES.LOGGED_IN_HOME)
+      navigate(ROUTES.LOGGED_IN_HOME);
     } catch (error) {
-        setMessage(error?.response?.data?.title || 'Login failed');
+      setMessage(error?.message?.title + '. ' + error?.message?.message);
     }
   };
 
@@ -31,9 +32,7 @@ function Login() {
       container
       justifyContent="center"
       alignItems="center"
-      minHeight="100vh"
       sx={{
-        background: 'linear-gradient(to right, #e0eafc, #cfdef3)',
         padding: 2,
       }}
     >
@@ -66,11 +65,10 @@ function Login() {
             />
           </Grid>
           <Grid xs={12} pb={2}>
-            <TextField
+            <PasswordField
                 required
                 fullWidth
                 label="Password"
-                type="password"
                 value={password}
                 onChange={(e) => {
                     setPassword(e.target.value)

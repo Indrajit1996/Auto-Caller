@@ -9,25 +9,36 @@ export const AuthLayout = () => {
       <Box
         sx={{
           minHeight: '100vh',
-          width: '100vw',
+          width: '100%',
           background: 'linear-gradient(to right, #e0eafc, #cfdef3)',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          justifyContent: 'center',
+          paddingTop: '10vh'
         }}
       >
         <Container
+          maxWidth="sm"
           sx={{
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            width: '100%',
-            maxWidth: 500,
+            backgroundColor: 'white',
+            borderRadius: 2,
+            boxShadow: 3,
+            p: 5,
+            width: '500px'
           }}
         >
-          <Typography variant='h4' fontWeight={700} color='primary' letterSpacing={-0.25} mb={2}>
+          <Typography 
+            variant='h4' 
+            fontWeight={700} 
+            color='primary' 
+            letterSpacing={-0.25} 
+            mb={4}
+            sx={{ mt: -1 }}
+          >
             {import.meta.env.VITE_APP_NAME}
           </Typography>
           <Outlet />

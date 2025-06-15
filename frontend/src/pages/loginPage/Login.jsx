@@ -26,7 +26,7 @@ function Login() {
   };
 
   return (
-    <Grid container spacing={2} style={{display: 'block'}} noValidate>
+    <Grid container spacing={2} style={{display: 'block', width: '100%'}} noValidate>
       <Grid xs={12} pb={2}>
         <TextField
           required
@@ -84,7 +84,6 @@ function Login() {
           sx={{ 
             cursor: 'pointer',
             flex: '0 0 auto',
-            ml: -6
           }}
           onClick={() => navigate('/register')}
         >
@@ -96,7 +95,6 @@ function Login() {
           sx={{ 
             cursor: 'pointer',
             flex: '0 0 auto',
-            mr: -6
           }}
           onClick={() => navigate('/forgot-password')}
         >

@@ -110,9 +110,9 @@ const Register = () => {
       container
       justifyContent="center"
       alignItems="center"
-      sx={{
-        padding: 2,
-      }}
+      // sx={{
+      //   padding: 2,
+      // }}
     >
       <Grid
         item
@@ -120,9 +120,9 @@ const Register = () => {
           width: '100%',
           maxWidth: 500,
           backgroundColor: 'white',
-          padding: 4,
+          // padding: 4,
           borderRadius: 2,
-          boxShadow: 3,
+          // boxShadow: 3,
           overflowY: 'auto', // Optional: scroll if content overflows
         }}
       >

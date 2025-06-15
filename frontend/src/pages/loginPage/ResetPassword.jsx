@@ -73,9 +73,9 @@ export default function ResetPassword() {
                     width: '100%',
                     maxWidth: 500,
                     backgroundColor: 'white',
-                    padding: 4,
+                    // padding: 4,
                     borderRadius: 2,
-                    boxShadow: 3,
+                    // boxShadow: 3,
                 }}
             >
                 <Typography component="h1" variant="h5" align="center" sx={{ mb: 4 }}>

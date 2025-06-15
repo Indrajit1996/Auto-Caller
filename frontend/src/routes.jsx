@@ -17,10 +17,12 @@ import VerifyEmail from '@/pages/loginPage/VerifyRegistration';
 import ForgotPassword from '@/pages/loginPage/ForgotPassword';
 import { Dashboard } from '@/pages/dashboard';
 import ConversationPage from '@/pages/conversation';
+import GoogleTranslate from '@/components/GoogleTranslate';
 
 export const Router = () => {
   return (
     <BrowserRouter>
+      <GoogleTranslate />
       <Routes>
         <Route element={<AuthLayout />}>
           <Route path={ROUTES.LANDING_PAGE} element={<Login />} />

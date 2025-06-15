@@ -15,7 +15,7 @@
           <mj-text>
             <p>If you’re having trouble clicking the button, copy and paste the URL below into your web browser.</p>
             <p><a href="{{ link }}">{{ link }}</a></p>
-            <p>Thanks,<br>The Decision Theater Team</br></p>
+            <p>Thanks,<br>The Auto Caller Team</br></p>
           </mj-text>
           <mj-text>{{ project_name }}</mj-text>
         </mj-column>

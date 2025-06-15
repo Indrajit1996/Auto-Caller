@@ -1,10 +1,10 @@
-// src/Login.js
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { Button, Divider, Grid2 as Grid, TextField, Typography } from '@mui/material';
 
 import { useAuth } from '@/hooks';
+import { ROUTES } from '@/constants/routeConstants'
 
 function Login() {
   const [username, setUsername] = useState('');
@@ -20,8 +20,8 @@ function Login() {
     formData.append('password', password);
     try {
       await login(formData);
+      navigate(ROUTES.LOGGED_IN_HOME)
     } catch (error) {
-        debugger
         setMessage(error?.response?.data?.title || 'Login failed');
     }
   };
@@ -95,7 +95,7 @@ function Login() {
             >
                 Forgot Password?
             </Typography>
-            </Grid>
+          </Grid>
 
             <Grid xs={12}>
                 <Button

@@ -61,7 +61,7 @@ Get the backend running in minutes:
 
    - Start all required services (PostgreSQL, Redis, backend)
    - Run database migrations
-   - Create a default admin user (Email: `admin@dtn.asu.edu`, Password: `Admin@1234`)
+   - Create a default admin user (Email: `vindrajit1996@gmail.com`, Password: `Admin@1234`)
 
 3. **Create additional admin users (optional)**
 

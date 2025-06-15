@@ -1,4 +1,4 @@
-# Keystone
+# Auto-Caller
 
 [![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=flat&logo=fastapi)](https://fastapi.tiangolo.com/) [![React](https://img.shields.io/badge/React-blue?style=flat&logo=react)](https://reactjs.org/) [![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat&logo=docker&logoColor=white)](https://www.docker.com/)
 
@@ -8,7 +8,7 @@ Full-stack web application with FastAPI backend and React frontend.
 
 ## Table of Contents
 
-- [Keystone](#keystone)
+- [Auto-Caller](#Auto-Caller)
   - [Table of Contents](#table-of-contents)
   - [Quick Start](#quick-start)
   - [Development Setup](#development-setup)
@@ -22,10 +22,10 @@ Full-stack web application with FastAPI backend and React frontend.
 ## Quick Start
 
 ```bash
-git clone https://github.com/DTNetwork/keystone.git
-cd keystone
+git clone git@github.com:Indrajit1996/Auto-Caller.git
+cd Auto-Caller
 cp .env.example .env
-docker compose up --watch
+docker compose up --build
 ```
 
 Access services:
@@ -36,8 +36,7 @@ Access services:
 
 Default logins:
 
-- Admin user: admin@dtn.asu.edu / Admin@1234
-- Regular user: user@dtn.asu.edu / User@1234
+- Admin user: vindrajit1996@gmail.com / Admin@1234
 
 ## Development Setup
 
@@ -95,13 +94,13 @@ The application uses Redis for caching and session management. Redis configurati
 ```bash
 # Cache configuration
 CACHE_ENABLED=True              # Set to False to disable caching
-REDIS_SERVER=keystone-redis     # Redis server hostname
+REDIS_SERVER=Auto-Caller-redis     # Redis server hostname
 REDIS_PORT=6379                 # Redis server port
 REDIS_PASSWORD=                 # Redis password (leave empty for no password)
 REDIS_DB=0                      # Redis database number
 ```
 
-For more detailed information about Redis configuration and usage, refer to the [Backend Development documentation](backend/README.md).
+For more detailed information about Redis configuration and usage, refer to the [Backend Development documentation](Backend/README.md).
 
 ### Docker Compose Configuration
 

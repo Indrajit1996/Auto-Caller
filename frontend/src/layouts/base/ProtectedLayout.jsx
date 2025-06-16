@@ -7,8 +7,8 @@ export const ProtectedLayout = ({ children }) => {
   const { isAuthenticated } = useAuth();
 
   if (!isAuthenticated) {
-    return <Navigate to={ROUTES.AUTH.LOGIN} replace />;
+    return <Navigate to={ROUTES.AUTH.LOGIN} />;
   }
 
-  return <>{children}</>;
+  return children;
 };

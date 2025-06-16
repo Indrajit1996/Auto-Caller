@@ -18,6 +18,10 @@ const MainContentBox = styled(Box, {
   [theme.breakpoints.down('md')]: {
     marginLeft: 0,
   },
+  padding: 0,
+  '& > *': {
+    padding: 0
+  }
 }));
 
 export const AppLayout = ({ disableSidebar = false, children }) => {

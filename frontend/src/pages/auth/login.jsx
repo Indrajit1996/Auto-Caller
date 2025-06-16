@@ -40,7 +40,7 @@ export const Login = () => {
     try {
       await login(formData);
     } catch (error) {
-      setAlertData(error?.response?.data?.detail);
+      setMessage(error?.message?.title + '. ' + error?.message?.message);
     }
   };
 

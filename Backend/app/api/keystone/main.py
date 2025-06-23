@@ -5,6 +5,7 @@ from app.api.keystone.routes import (
     groups,
     invitations,
     notifications,
+    conversations,
     transactions,
     user_settings,
     users,
@@ -20,3 +21,4 @@ api_router.include_router(user_settings.router)
 api_router.include_router(notifications.router)
 api_router.include_router(utils.router)
 api_router.include_router(transactions.router)
+api_router.include_router(conversations.router)

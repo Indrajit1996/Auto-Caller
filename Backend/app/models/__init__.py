@@ -7,6 +7,8 @@ from .group import Group, UserGroup  # noqa
 from .notification import Notification  # noqa
 from .password_reset import PasswordReset  # noqa
 from .transaction import Transaction  # noqa
+from .conversation import Conversation  # noqa
+from .message import Message  # noqa
 
 __all__ = [
     "User",
@@ -18,4 +20,6 @@ __all__ = [
     "Notification",
     "PasswordReset",
     "Transaction",
+    "Conversation",
+    "Message",
 ]

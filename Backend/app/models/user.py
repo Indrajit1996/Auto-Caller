@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     from app.models.notification import Notification
     from app.models.password_reset import PasswordReset
     from app.models.user_settings import UserSettings
+    from app.models.conversation import Conversation
 
 
 class UserStatus(Enum):
@@ -68,6 +69,10 @@ class User(SQLModel, TimestampMixin, table=True):
     )
     password_reset: "PasswordReset" = Relationship(
         back_populates="user", cascade_delete=True
+    )
+    conversations: list["Conversation"] = Relationship(
+        back_populates="agent",
+        sa_relationship_kwargs={"lazy": "selectin"},
     )
 
     @property

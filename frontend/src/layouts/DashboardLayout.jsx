@@ -1,4 +1,5 @@
 import { Outlet } from 'react-router';
+import { Box } from '@mui/material';
 
 import { AppLayout } from '@/layouts/base/AppLayout';
 import { ProtectedLayout } from '@/layouts/base/ProtectedLayout';
@@ -11,9 +12,11 @@ export const DashboardLayout = () => {
       {isSevenScreen ? (
         <Outlet />
       ) : (
-        <AppLayout>
-          <Outlet />
-        </AppLayout>
+        <Box sx={{ p: 0, m: 0 }}>
+          <AppLayout>
+            <Outlet />
+          </AppLayout>
+        </Box>
       )}
     </ProtectedLayout>
   );

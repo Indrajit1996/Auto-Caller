@@ -54,7 +54,7 @@ STATUS_MESSAGES = {
         "detail": {
             "status": "INVALID_CREDENTIALS",
             "severity": "error",
-            "title": "Susadlkjdasklj",
+            "title": "Invalid Credentials",
             "message": "Incorrect email or password",
         },
     },

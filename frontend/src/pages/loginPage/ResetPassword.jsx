@@ -1,5 +1,5 @@
 // src/ResetPassword.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import {
     Grid,
@@ -11,6 +11,7 @@ import {
 import { useSnackbar } from '@/hooks/useSnackbar';
 import authApi from '@/api/auth';
 import { ROUTES } from '@/constants/routeConstants';
+import PasswordField from '@/components/PasswordField';
 
 export default function ResetPassword() {
     const [searchParams] = useSearchParams();
@@ -23,6 +24,14 @@ export default function ResetPassword() {
     const [message, setMessage] = useState('');
     const { showSuccess, showError } = useSnackbar();
     const navigate = useNavigate();
+
+    useEffect(() => {
+        const token = searchParams.get('token');
+        if (!token) {
+            showError('Reset token is missing');
+            navigate(ROUTES.AUTH.LOGIN, { replace: true });
+        }
+    }, [searchParams, showError, navigate]);
 
     const handleReset = async (e) => {
         e.preventDefault();
@@ -54,20 +63,19 @@ export default function ResetPassword() {
             container
             justifyContent="center"
             alignItems="center"
-            minHeight="100vh"
             sx={{
-                background: 'linear-gradient(to right, #e0eafc, #cfdef3)',
                 padding: 2,
             }}
         >
             <Grid
                 item
                 sx={{
-                    width: '500px',
+                    width: '100%',
+                    maxWidth: 500,
                     backgroundColor: 'white',
-                    padding: 4,
+                    // padding: 4,
                     borderRadius: 2,
-                    boxShadow: 3,
+                    // boxShadow: 3,
                 }}
             >
                 <Typography component="h1" variant="h5" align="center" sx={{ mb: 4 }}>
@@ -76,11 +84,10 @@ export default function ResetPassword() {
                 <Box component="form" noValidate>
                     <Grid container spacing={2} style={{ display: 'block' }}>
                         <Grid item xs={12} pb={2}>
-                            <TextField
+                            <PasswordField
                                 required
                                 fullWidth
                                 label="New Password"
-                                type="password"
                                 value={newPassword}
                                 onChange={(e) => {
                                     setNewPassword(e.target.value); 
@@ -89,11 +96,10 @@ export default function ResetPassword() {
                             />
                         </Grid>
                         <Grid item xs={12} pb={2}>
-                            <TextField
+                            <PasswordField
                                 required
                                 fullWidth
                                 label="Confirm Password"
-                                type="password"
                                 value={confirmPassword}
                                 onChange={(e) => {
                                     setConfirmPassword(e.target.value);

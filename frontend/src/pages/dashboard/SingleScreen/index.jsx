@@ -2,6 +2,7 @@ import React from 'react';
 import { Box, Typography, Paper, List, ListItem, ListItemText } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import ConversationSummary from '@/components/ConversationSummary';
+import CallButton from '@/components/CallButton';
 import useConversationStore from '@/store/conversationStore';
 import { ROUTES } from '@/constants/routeConstants';
 
@@ -64,6 +65,11 @@ const DashboardSingleScreen = () => {
                         ))}
                     </List>
                 )}
+            </Paper>
+
+            <Paper sx={{ mt: 2, p: 2 }}>
+                <Typography variant="h6" sx={{ mb: 1 }}>Make a Call</Typography>
+                <CallButton />
             </Paper>
         </Box>
     );

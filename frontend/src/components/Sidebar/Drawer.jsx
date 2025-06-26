@@ -11,7 +11,7 @@ import {
   ListItemIcon,
   ListItemText,
   Typography,
-} from '@mui/material';
+} from '@mui/material'; 
 import { useLocation, useNavigate } from 'react-router';
 
 import { SIDEBAR_ROUTES } from '@/components/Sidebar/SidebarRoutes';

@@ -15,7 +15,7 @@ export const App = () => {
 
   useEffect(() => {
     initializeAuth();
-  }, [initializeAuth]);
+  }, [initializeAuth]); 
 
   return (
     <StrictMode>

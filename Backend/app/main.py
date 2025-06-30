@@ -19,7 +19,7 @@ from app.jobs.expire_users import expire_users
 
 
 def custom_generate_unique_id(route: APIRoute) -> str:
-    return f"{route.tags[0]}-{route.name}"
+    return f"{route.tags[0]}-{route.name}" if route.tags else f"default-{route.name}"
 
 
 if config.SENTRY_DSN and not config.is_local:
@@ -66,6 +66,12 @@ if config.all_cors_origins:
     )
 
 app.add_middleware(GZipMiddleware, minimum_size=1000, compresslevel=5)
+
+
+@app.get("/health", tags=["health"])
+async def health_check():
+    """Health check endpoint for Docker and load balancers."""
+    return {"status": "healthy", "service": config.PROJECT_NAME}
 
 
 app.include_router(keystone_api_router)

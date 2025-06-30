@@ -16,7 +16,11 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      '/api': process.env.VITE_API_URL_DEV,
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        secure: false,
+      },
     },
   },
   watchOptions: {

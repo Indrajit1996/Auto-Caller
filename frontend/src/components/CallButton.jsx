@@ -18,12 +18,11 @@ function getRandomMessage() {
 const CallButton = () => {
   const [loading, setLoading] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
-  const backendBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "";
 
   const makeCall = async () => {
     setLoading(true);
     try {
-      const response = await axios.post(`${backendBaseUrl}/api/calls/make-call`, {
+      const response = await axios.post(`/api/calls/make-call`, {
         to: '+16023860501',
         message: getRandomMessage()
       });

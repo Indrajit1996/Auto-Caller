@@ -50,10 +50,12 @@ const NotificationIcon = styled(Box)(({ theme }) => ({
   marginRight: theme.spacing(1.5),
 }));
 
-const NotificationContent = styled(Box)(({ theme, isRead }) => ({
-  opacity: isRead ? 0.7 : 1,
-  width: '100%', // Ensure it takes full width
-  overflow: 'hidden', // Prevent overflow
+const NotificationContent = styled(Box, {
+  shouldForwardProp: (prop) => prop !== 'isread',
+})(({ isread }) => ({
+  opacity: isread ? 0.7 : 1,
+  width: '100%',
+  overflow: 'hidden',
 }));
 
 const NotificationPanel = () => {
@@ -173,7 +175,7 @@ const NotificationPanel = () => {
                   }
                 >
                   <NotificationIcon>{renderNotificationIcon(notification.type)}</NotificationIcon>
-                  <NotificationContent isRead={notification.is_read}>
+                  <NotificationContent isread={notification.is_read}>
                     <ListItemText
                       primary={
                         <Typography variant='body2' maxWidth='87%'>

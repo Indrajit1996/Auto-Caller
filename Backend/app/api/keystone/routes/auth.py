@@ -163,7 +163,6 @@ async def login_access_token(
         session=session, email=form_data.username, password=form_data.password
     )
     if not user:
-        # print('auth side br yoyoyoyoyoyoyoyoyo')
         raise HTTPException(
             status_code=STATUS_MESSAGES["INVALID_CREDENTIALS"]["status_code"],
             detail=STATUS_MESSAGES["INVALID_CREDENTIALS"]["detail"],

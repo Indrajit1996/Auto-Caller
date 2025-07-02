@@ -2,6 +2,7 @@ import DashboardIcon from '@mui/icons-material/Dashboard';
 import GroupAddIcon from '@mui/icons-material/GroupAdd';
 import GroupsIcon from '@mui/icons-material/Groups';
 import PersonIcon from '@mui/icons-material/Person';
+import QuestionAnswerIcon from '@mui/icons-material/QuestionAnswer';
 
 import { ROUTES } from '@/constants/routeConstants';
 
@@ -12,6 +13,12 @@ export const SIDEBAR_ROUTES = [
         path: ROUTES.LOGGED_IN_HOME,
         title: 'Dashboard',
         icon: <DashboardIcon />,
+        onlySuperUser: false,
+      },
+      {
+        path: ROUTES.CONVERSATION,
+        title: 'Start a conversation',
+        icon: <QuestionAnswerIcon />,
         onlySuperUser: false,
       },
     ],

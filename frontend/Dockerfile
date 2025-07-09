@@ -3,12 +3,12 @@ FROM node:22-slim AS build-stage
 
 WORKDIR /app
 
-COPY package.json pnpm-lock.yaml ./
+COPY package.json package-lock.json ./
 
-RUN npm install -g pnpm && pnpm config set store-dir /app/node_modules/.pnpm-store
-
-RUN pnpm install --frozen-lockfile
+# Clean install to avoid architecture issues
+RUN rm -rf node_modules package-lock.json && \
+    npm install
 
 COPY . .
 
-CMD ["pnpm", "run", "docker-dev"]
+CMD ["npm", "run", "docker-dev"]

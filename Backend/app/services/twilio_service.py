@@ -45,7 +45,10 @@ class TwilioService:
             if not self.elevenlabs_api_key:
                 logger.error("ElevenLabs API key not configured")
                 return None
-            logger.info(f"Generating TTS for text: {text[:50]}... with voice_id: {voice_id}")
+            
+            # Add pauses to slow down speech
+            slowed_text = text.replace(".", "... ").replace(",", ",, ").replace("!", "!... ")
+            logger.info(f"Generating TTS for text: {slowed_text[:50]}... with voice_id: {voice_id}")
             eleven_url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
             headers = {
                 "Accept": "audio/mpeg",
@@ -53,14 +56,16 @@ class TwilioService:
                 "xi-api-key": self.elevenlabs_api_key,
             }
             payload = {
-                "text": text,
+                "text": slowed_text,
                 "model_id": "eleven_monolingual_v1",
                 "voice_settings": {
                     "stability": 0.5,
                     "similarity_boost": 0.5,
-                    "speaking_rate": 0.2
+                    "speaking_rate": 0.01
                 },
+                "optimization_level": 0
             }
+            logger.info(f"ElevenLabs payload: {payload}")
             logger.info(f"Making request to ElevenLabs: {eleven_url}")
             resp = requests.post(eleven_url, json=payload, headers=headers, timeout=30)
             if resp.status_code != 200:
@@ -133,7 +138,7 @@ class TwilioService:
                 # Fallback to Twilio TTS, then record
                 twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say voice="alice">{message}</Say>
+    <Say voice="alice" speed="slow">{message}</Say>
     <Record 
         action="{recording_webhook}" 
         method="POST" 

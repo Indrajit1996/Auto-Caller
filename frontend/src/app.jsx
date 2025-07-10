@@ -9,6 +9,7 @@ import { SnackbarProvider } from '@/components/Snackbar';
 import { useAuth } from '@/hooks';
 import { Router } from '@/routes';
 import theme from '@/theme';
+import ScheduleCallForm from './components/ScheduleCallForm';
 
 export const App = () => {
   const { initializeAuth } = useAuth();
@@ -25,6 +26,7 @@ export const App = () => {
             <CssBaseline />
             <Suspense fallback={<Loader />}>
               <Router />
+              <ScheduleCallForm />
             </Suspense>
           </SnackbarProvider>
         </ThemeProvider>

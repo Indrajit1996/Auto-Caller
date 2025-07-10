@@ -164,7 +164,7 @@ async def get_twiml(request: Request):
             # Fallback to Twilio TTS
             twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say voice="alice">{message}</Say>
+    <Say voice="alice" speed="slow">{message}</Say>
 </Response>'''
             logger.info(f"[TWIML] Using Twilio TTS fallback for message: {message}")
         
@@ -359,12 +359,12 @@ async def handle_recording(request: Request):
         if audio_url:
             twiml = f"""<?xml version="1.0" encoding="UTF-8"?>\n<Response>\n    <Play>{audio_url}</Play>\n    <Record \n        action="{recording_webhook}" \n        method="POST" \n        maxLength="60" \n        playBeep="true" \n        timeout="5" \n        transcribe="true" \n        transcribeCallback="{transcription_webhook}"\n        recordingStatusCallback="{recording_webhook}"\n    />\n</Response>"""
         else:
-            twiml = f"""<?xml version="1.0" encoding="UTF-8"?>\n<Response>\n    <Say voice="alice">{response_message}</Say>\n    <Record \n        action="{recording_webhook}" \n        method="POST" \n        maxLength="60" \n        playBeep="true" \n        timeout="5" \n        transcribe="true" \n        transcribeCallback="{transcription_webhook}"\n        recordingStatusCallback="{recording_webhook}"\n    />\n</Response>"""
+            twiml = f"""<?xml version="1.0" encoding="UTF-8"?>\n<Response>\n    <Say voice="alice" speed="slow">{response_message}</Say>\n    <Record \n        action="{recording_webhook}" \n        method="POST" \n        maxLength="60" \n        playBeep="true" \n        timeout="5" \n        transcribe="true" \n        transcribeCallback="{transcription_webhook}"\n        recordingStatusCallback="{recording_webhook}"\n    />\n</Response>"""
         logger.info(f"Continuing conversation for call {call_sid}")
         return Response(content=twiml, media_type="application/xml")
     except Exception as e:
         logger.error(f"Error handling recording for call {call_sid}: {e}")
-        error_twiml = '''<?xml version="1.0" encoding="UTF-8"?>\n<Response>\n    <Say voice="alice">Sorry, there was an error. Let me try again.</Say>\n    <Record \n        action="/api/calls/handle-recording" \n        method="POST" \n        maxLength="60" \n        playBeep="true" \n        timeout="5" \n        transcribe="true" \n        transcribeCallback="/api/calls/handle-transcription"\n        recordingStatusCallback="/api/calls/handle-recording"\n    />\n</Response>'''
+        error_twiml = '''<?xml version="1.0" encoding="UTF-8"?>\n<Response>\n    <Say voice="alice" speed="slow">Sorry, there was an error. Let me try again.</Say>\n    <Record \n        action="/api/calls/handle-recording" \n        method="POST" \n        maxLength="60" \n        playBeep="true" \n        timeout="5" \n        transcribe="true" \n        transcribeCallback="/api/calls/handle-transcription"\n        recordingStatusCallback="/api/calls/handle-recording"\n    />\n</Response>'''
         return Response(content=error_twiml, media_type="application/xml")
 
 @router.post("/handle-transcription")

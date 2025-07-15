@@ -4,11 +4,11 @@ import { useSnackbar } from 'notistack';
 import axios from 'axios';
 
 const randomMessages = [
-  'This is a random test call from Auto-Caller!',
-  'Hello! This is your friendly automated call.',
-  'Testing, testing, 1-2-3!',
-  'Have a great day from Auto-Caller!',
-  'This is an immediate call demo.'
+  '... This... is... a... random... test... call... from... Auto-Caller...!',
+  '... Hello...! This... is... your... friendly... automated... call...!',
+  '... Testing... testing... 1... 2... 3...!',
+  '... Have... a... great... day... from... Auto-Caller...!',
+  '... This... is... an... immediate... call... demo...!'
 ];
 
 function getRandomMessage() {

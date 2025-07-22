@@ -3,12 +3,14 @@ FROM node:22-slim AS build-stage
 
 WORKDIR /app
 
-COPY package.json package-lock.json ./
+COPY package.json pnpm-lock.yaml ./
 
-# Clean install to avoid architecture issues
-RUN rm -rf node_modules package-lock.json && \
-    npm install
+RUN npm install -g pnpm
+
+RUN pnpm install
+
+ENV ROLLUP_USE_NODE_JS=true
 
 COPY . .
 
-CMD ["npm", "run", "docker-dev"]
+CMD ["pnpm", "run", "docker-dev"]

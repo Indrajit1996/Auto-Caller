@@ -6,6 +6,9 @@ import CallButton from '@/components/CallButton';
 import useConversationStore from '@/store/conversationStore';
 import { ROUTES } from '@/constants/routeConstants';
 
+// --- Add RecentCalls import ---
+import RecentCalls from '@/components/RecentCalls';
+
 const sidebarUsers = [
     { id: 1, name: 'Sachin' },
     { id: 2, name: 'Indra' },
@@ -70,6 +73,11 @@ const DashboardSingleScreen = () => {
             <Paper sx={{ mt: 2, p: 2 }}>
                 <Typography variant="h6" sx={{ mb: 1 }}>Make a Call</Typography>
                 <CallButton />
+            </Paper>
+
+            {/* --- Add RecentCalls section below --- */}
+            <Paper sx={{ mt: 2, p: 2 }}>
+                <RecentCalls />
             </Paper>
         </Box>
     );

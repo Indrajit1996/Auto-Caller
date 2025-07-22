@@ -54,6 +54,7 @@ const authStore = create(
 
       login: async (credentials) => {
         set({ isLoading: true });
+        debugger
         try {
           const {
             data: { access_token },

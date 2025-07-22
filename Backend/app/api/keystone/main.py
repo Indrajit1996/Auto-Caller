@@ -2,6 +2,7 @@ from fastapi import APIRouter
 
 from app.api.keystone.routes import (
     auth,
+    conversations,
     groups,
     invitations,
     notifications,
@@ -18,5 +19,6 @@ api_router.include_router(invitations.router)
 api_router.include_router(groups.router)
 api_router.include_router(user_settings.router)
 api_router.include_router(notifications.router)
+api_router.include_router(conversations.router)
 api_router.include_router(utils.router)
 api_router.include_router(transactions.router)

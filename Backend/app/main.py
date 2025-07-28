@@ -13,6 +13,8 @@ from starlette.middleware.cors import CORSMiddleware
 from app.api.keystone.main import api_router as keystone_api_router
 from app.api.project.main import api_router as project_api_router
 from app.api.endpoints import schedule_call
+from app.api.endpoints import conversations
+from app.api.endpoints import calls
 from app.core.config import config
 from app.core.logger import configure_logger
 from app.core.scheduler import daily_midnight_trigger, scheduler
@@ -78,3 +80,5 @@ async def health_check():
 app.include_router(keystone_api_router)
 app.include_router(project_api_router)
 app.include_router(schedule_call.router)
+app.include_router(conversations.router, prefix="/api/conversations", tags=["conversations"])
+app.include_router(calls.router, prefix="/api/calls", tags=["calls"])

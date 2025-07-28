@@ -29,6 +29,26 @@ const useConversationStore = create(
           history: [item, ...state.history].slice(0, 5),
         })),
 
+      addMessageWithAudio: (userId, message, audioUrl = null) => {
+        const currentConversations = get().conversations;
+        const userConversations = currentConversations[userId] || [];
+        
+        set({
+          conversations: {
+            ...currentConversations,
+            [userId]: [
+              ...userConversations,
+              {
+                sender: 'user',
+                text: message,
+                audioUrl: audioUrl,
+                timestamp: Date.now(),
+              },
+            ],
+          },
+        });
+      },
+
       removeHistory: (idx) =>
         set((state) => ({
           history: state.history.filter((_, i) => i !== idx),

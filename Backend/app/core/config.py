@@ -42,6 +42,7 @@ class Config(BaseSettings):
     """Application configuration settings."""
 
     model_config = SettingsConfigDict(
+        env_file=".env",
         env_ignore_empty=True,
         extra="ignore",
     )
@@ -102,6 +103,12 @@ class Config(BaseSettings):
     SENTRY_DSN: HttpUrl | None = None
     SENTRY_ENVIRONMENT: str | None = None
     SENTRY_RELEASE: str | None = None
+
+    # ==== Twilio ====
+    TWILIO_ACCOUNT_SID: str | None = None
+    TWILIO_AUTH_TOKEN: str | None = None
+    TWILIO_PHONE_NUMBER: str | None = None
+    WEBHOOK_BASE_URL: str | None = None
 
     # ==== CORS ====
     # BACKEND_CORS_ORIGINS: Annotated[

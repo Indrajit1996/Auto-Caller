@@ -9,14 +9,20 @@ import requests
 from twilio.rest import Client
 from twilio.base.exceptions import TwilioException
 import openai
+from botocore.exceptions import NoCredentialsError
+from twilio.rest import Client
+from app.core.config import Config, config
+
+# Load configuration
+settings = Config()
 
 logger = logging.getLogger(__name__)
 
 class TwilioService:
     def __init__(self):
-        self.account_sid = os.getenv("TWILIO_ACCOUNT_SID")
-        self.auth_token = os.getenv("TWILIO_AUTH_TOKEN")
-        self.phone_number = os.getenv("TWILIO_PHONE_NUMBER")
+        self.account_sid = config.TWILIO_ACCOUNT_SID
+        self.auth_token = config.TWILIO_AUTH_TOKEN
+        self.phone_number = config.TWILIO_PHONE_NUMBER
         self.elevenlabs_api_key = os.getenv("ELEVENLABS_API_KEY")
         self.openai_api_key = os.getenv("OPENAI_API_KEY")
         # AWS S3 configuration - re-enabled
@@ -255,30 +261,9 @@ class TwilioService:
             
             logger.info(f"Transcribing audio with Whisper: {audio_url}")
             
-            # Download the audio file
-            response = requests.get(audio_url, timeout=30)
-            response.raise_for_status()
-            
-            # Save temporarily and transcribe
-            temp_filename = f"/tmp/audio_{uuid.uuid4().hex}.wav"
-            with open(temp_filename, "wb") as f:
-                f.write(response.content)
-            
-            try:
-                with open(temp_filename, "rb") as audio_file:
-                    transcript = openai.Audio.transcribe(
-                        "whisper-1",
-                        audio_file,
-                        response_format="text"
-                    )
-                
-                logger.info(f"Whisper transcription successful: {transcript[:50]}...")
-                return transcript.strip()
-                
-            finally:
-                # Clean up temp file
-                if os.path.exists(temp_filename):
-                    os.remove(temp_filename)
+            # For now, skip Whisper transcription since we have Twilio transcription
+            logger.info("Skipping Whisper transcription - using Twilio transcription instead")
+            return None
                     
         except Exception as exc:
             logger.error(f"Whisper transcription failed: {exc}")
@@ -287,31 +272,38 @@ class TwilioService:
     def download_and_store_recording(self, recording_url: str, call_sid: str) -> Optional[str]:
         """Download Twilio recording and store in S3."""
         try:
-            logger.info(f"Downloading recording: {recording_url}")
+            logger.info(f"Processing recording: {recording_url}")
             
-            # Download from Twilio
-            response = requests.get(recording_url, timeout=30)
-            response.raise_for_status()
-            
-            # Upload to S3 - temporarily disabled
-            object_key = f"recordings/{call_sid}_{uuid.uuid4().hex}.wav"
-            # self.s3_client.put_object(
-            #     Bucket=self.s3_bucket,
-            #     Key=object_key,
-            #     Body=response.content,
-            #     ContentType="audio/wav",
-            # )
-            
-            # s3_url = f"https://{self.s3_bucket}.s3.us-east-2.amazonaws.com/{object_key}"
-            # logger.info(f"Recording stored in S3: {s3_url}")
-            # return s3_url
-            
-            # Temporarily return None since S3 is disabled
-            logger.warning("S3 storage temporarily disabled - returning None")
-            return None
+            if not self.client:
+                logger.error("Twilio client not initialized")
+                return None
+                
+            # Extract recording SID from URL
+            recording_sid = recording_url.split('/')[-1]
+            try:
+                # Get the recording first
+                recording = self.client.recordings(recording_sid).fetch()
+                logger.info(f"Found recording: {recording.sid}")
+                
+                # According to Twilio docs, we need to use the media_content property
+                # The recording URL should be accessible directly
+                # Twilio provides the recording URL in the recording object
+                if hasattr(recording, 'uri'):
+                    # Convert the URI to a full URL
+                    base_url = f"https://api.twilio.com/2010-04-01/Accounts/{self.account_sid}"
+                    full_recording_url = f"{base_url}/Recordings/{recording_sid}.mp3"
+                    logger.info(f"Using Twilio recording URL: {full_recording_url}")
+                    return full_recording_url
+                else:
+                    logger.error("Recording object has no URI attribute")
+                    return None
+                
+            except Exception as twilio_exc:
+                logger.error(f"Failed to fetch recording from Twilio: {twilio_exc}")
+                return None
             
         except Exception as exc:
-            logger.error(f"Failed to store recording: {exc}")
+            logger.error(f"Failed to process recording: {exc}")
             return None
 
 # Create a global instance

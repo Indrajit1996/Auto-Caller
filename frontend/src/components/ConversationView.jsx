@@ -1,5 +1,8 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Box, TextField, Button } from '@mui/material';
+import { Box, TextField, Button, IconButton, Typography } from '@mui/material';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import PauseIcon from '@mui/icons-material/Pause';
+import VolumeUpIcon from '@mui/icons-material/VolumeUp';
 import useConversationStore from '@/store/conversationStore';
 
 function getSimulatedElapsedForText(text) {
@@ -16,6 +19,7 @@ export default function ConversationView({
   onSummaryUpdate,
 }) {
   const [input, setInput] = useState('');
+  const [playingAudio, setPlayingAudio] = useState(null);
   const chatEndRef = useRef(null);
   const conversations = useConversationStore((state) => state.conversations);
   const setConversations = useConversationStore((state) => state.setConversations);
@@ -62,6 +66,41 @@ export default function ConversationView({
     }
   };
 
+  const handleAudioPlay = (audioUrl, messageId) => {
+    if (playingAudio === messageId) {
+      // Stop playing
+      setPlayingAudio(null);
+      // You could add logic to stop the audio here
+    } else {
+      // Start playing new audio
+      setPlayingAudio(messageId);
+      // You could add logic to play the audio here
+      console.log('Playing audio:', audioUrl);
+    }
+  };
+
+  const renderAudioPlayer = (audioUrl, messageId) => {
+    if (!audioUrl) return null;
+    
+    const isPlaying = playingAudio === messageId;
+    
+    return (
+      <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
+        <IconButton
+          size="small"
+          onClick={() => handleAudioPlay(audioUrl, messageId)}
+          sx={{ mr: 1 }}
+        >
+          {isPlaying ? <PauseIcon /> : <PlayArrowIcon />}
+        </IconButton>
+        <VolumeUpIcon sx={{ fontSize: 16, mr: 1 }} />
+        <Typography variant="caption" color="text.secondary">
+          Audio Message
+        </Typography>
+      </Box>
+    );
+  };
+
   return (
     <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
       <Box sx={{ flex: 1, p: 2, display: 'flex', flexDirection: 'column', gap: 2, overflowY: 'auto', minHeight: '300px' }}>
@@ -78,6 +117,7 @@ export default function ConversationView({
             }}
           >
             {msg.text}
+            {renderAudioPlayer(msg.audioUrl, idx)}
           </Box>
         ))}
         <div ref={chatEndRef} />

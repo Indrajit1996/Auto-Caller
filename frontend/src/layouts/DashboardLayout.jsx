@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { AppLayout } from '@/layouts/base/AppLayout';
 import { ProtectedLayout } from '@/layouts/base/ProtectedLayout';
 import api from '@/api';
+import authApi from '@/api/auth';
 
 export const DashboardLayout = () => {
   const isSevenScreen = import.meta.env.VITE_SEVEN_SCREEN_DASHBOARD_LAYOUT_ENABLED === 'true';
@@ -12,9 +13,8 @@ export const DashboardLayout = () => {
 
   useEffect(() => {
     const fetchConversations = async () => {
-      debugger
       try {
-        const response = await api.get('/conversations');
+        const response = await authApi.getConversations();
         setConversations(response.data);
       } catch (error) {
         console.error('Failed to fetch conversations:', error);

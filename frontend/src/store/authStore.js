@@ -26,6 +26,7 @@ const authStore = create(
       fetchUserData: async () => {
         try {
           const { data: userData } = await retry(async () => await authApi.getMe(), 3, 1000);
+          // const response = await authApi.getConversations();
           set({ user: userData });
           return userData;
         } catch (error) {
@@ -54,7 +55,6 @@ const authStore = create(
 
       login: async (credentials) => {
         set({ isLoading: true });
-        debugger
         try {
           const {
             data: { access_token },

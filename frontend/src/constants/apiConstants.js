@@ -10,6 +10,8 @@ export const API_ROUTES = Object.freeze({
     UPDATE_PASSWORD: '/me/password',
     VERIFY_EMAIL: (token) => `/verify-email/${token}`,
     RESEND_VERIFICATION_EMAIL: '/verify-email/resend',
+    GET_CONVERSATIONS: '/conversations',
+    GET_MESSAGES: (conversation_id) => `/conversations/${conversation_id}`,
   },
   INVITATIONS: {
     INVITATIONS_DATATABLE: '/invitations/datatable',

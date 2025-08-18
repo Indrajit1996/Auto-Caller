@@ -13,6 +13,7 @@ from app.models.invitation import InvitationRegistration
 from app.models.mixins.timestamp_mixin import TimestampMixin
 
 if TYPE_CHECKING:
+    from app.models.conversation import Conversation
     from app.models.group import Group
     from app.models.invitation import Invitation
     from app.models.notification import Notification
@@ -68,6 +69,9 @@ class User(SQLModel, TimestampMixin, table=True):
     )
     password_reset: "PasswordReset" = Relationship(
         back_populates="user", cascade_delete=True
+    )
+    conversations: list["Conversation"] = Relationship(
+        back_populates="agent", cascade_delete=True
     )
 
     @property

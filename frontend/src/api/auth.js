@@ -16,5 +16,7 @@ const authApi = {
   deactivateAccount: () => api.patch(API_ROUTES.AUTH.DEACTIVATE_ACCOUNT),
   updatePassword: (passwordData) => api.patch(API_ROUTES.AUTH.UPDATE_PASSWORD, passwordData),
   updateProfile: (settings) => api.patch(API_ROUTES.AUTH.GET_ME, settings),
+  getConversations: () => api.get(API_ROUTES.AUTH.GET_CONVERSATIONS),
+  getMessages: (conversation_id) => api.get(API_ROUTES.AUTH.GET_MESSAGES(conversation_id)),
 };
 export default authApi;

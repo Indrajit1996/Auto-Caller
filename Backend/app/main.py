@@ -68,5 +68,8 @@ if config.all_cors_origins:
 app.add_middleware(GZipMiddleware, minimum_size=1000, compresslevel=5)
 
 
+print("Including keystone API router with routes:", [route.path for route in keystone_api_router.routes])
 app.include_router(keystone_api_router)
+print("Including project API router")
 app.include_router(project_api_router)
+print("All routers included successfully")

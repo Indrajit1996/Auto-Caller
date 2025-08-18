@@ -1,10 +1,12 @@
 from datetime import datetime, timedelta, timezone
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, Body, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
 from loguru import logger
-from sqlmodel import select
+from sqlmodel import func, select
+from sqlalchemy import text
 
 from app.api.deps import (
     AsyncSessionDep,
@@ -32,11 +34,13 @@ from app.core.security import get_password_hash, verify_password
 from app.emails.utils import send_email
 from app.models import Invitation, User, UserGroup
 from app.models.invitation import InvitationRegistration, InvitationType
+from app.models.conversation import Conversation, Message
 from app.models.notification import NotificationType
 from app.models.password_reset import PasswordReset
 from app.models.user import UserStatus
 from app.schemas.auth import UserRegisterResponse
-from app.schemas.common import Message, NewPassword, Token
+from app.schemas.common import Message as MessageSchema, NewPassword, Token
+from app.schemas.conversation import ConversationList, MessageList
 from app.schemas.user import (
     UpdatePassword,
     UserCreate,
@@ -250,6 +254,93 @@ async def read_user_me(current_user: CurrentUser) -> UserPublic:
     Get current user.
     """
     return UserPublic.model_validate(current_user)
+
+
+@router.get("/conversations")
+async def get_conversations(
+    session: AsyncSessionDep,
+    current_user: CurrentUser,
+    offset: int = 0,
+    limit: int = 100,
+) -> ConversationList:   
+    """Get all conversations for the logged-in user"""
+    
+    statement = select(Conversation).where(
+        Conversation.agent_id == current_user.id
+    )
+    count_statement = (
+        select(func.count())
+        .select_from(Conversation)
+        .where(Conversation.agent_id == current_user.id)
+    )
+    count = await session.scalar(count_statement)
+
+    conversations = await session.scalars(statement.offset(offset).limit(limit))
+
+    return ConversationList.model_validate({"data": conversations, "count": count})
+
+@router.get("/conversations/{conversation_id}")
+async def get_messages(
+    session: AsyncSessionDep,
+    current_user: CurrentUser,
+    conversation_id: UUID,
+    offset: int = 0,
+    limit: int = 100,
+) -> MessageList:
+    """Get all messages for a specific conversation"""
+    # Find the conversation by conversation_id and verify it belongs to the current user
+    conversation_result = await session.exec(
+        select(Conversation).where(
+            Conversation.id == conversation_id,
+            Conversation.agent_id == current_user.id
+        )
+    )
+    conversation = conversation_result.first()
+    
+    
+    print('conversation result ----------->', conversation)
+
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+    # Get messages for the conversation - using text to avoid enum issues
+    statement = text("""
+        SELECT id, conversation_id, sender_role, message_type, text_content, audio_url, created_at
+        FROM messages 
+        WHERE conversation_id = :conversation_id 
+        ORDER BY created_at
+        LIMIT :limit OFFSET :offset
+    """)
+    
+    
+    print('statement ------> ', statement)
+    count_statement = text("""
+        SELECT COUNT(*) FROM messages WHERE conversation_id = :conversation_id
+    """)
+    
+    count_result = await session.execute(count_statement, {"conversation_id": conversation_id})
+    count = count_result.scalar()
+
+    messages_result = await session.execute(statement, {"conversation_id": conversation_id, "limit": limit, "offset": offset})
+    messages = messages_result.fetchall()
+    
+    # Convert to dict format
+    messages_data = []
+    for row in messages:
+        messages_data.append({
+            "id": str(row.id),
+            "conversation_id": str(row.conversation_id),
+            "sender_role": row.sender_role,
+            "message_type": row.message_type,
+            "text_content": row.text_content,
+            "audio_url": row.audio_url,
+            "created_at": row.created_at
+        })
+        
+    print('messages_data ---------> ', messages_data)
+
+    return MessageList.model_validate({"data": messages_data, "count": count})
+
 
 
 @router.patch("/me/deactivate", response_model=Message)

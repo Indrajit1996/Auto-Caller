@@ -69,3 +69,7 @@ test-results/
 # Build outputs
 dist/
 build/ 
+
+# PNPM store
+.pnpm-store/
+frontend/.pnpm-store/

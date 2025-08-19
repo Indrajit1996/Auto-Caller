@@ -12,9 +12,9 @@ from starlette.middleware.cors import CORSMiddleware
 
 from app.api.keystone.main import api_router as keystone_api_router
 from app.api.project.main import api_router as project_api_router
-from app.api.endpoints import schedule_call
-from app.api.endpoints import conversations
-from app.api.endpoints import calls
+from app.api.keystone.routes import schedule_call
+from app.api.keystone.routes import conversations
+from app.api.keystone.routes import calls
 from app.core.config import config
 from app.core.logger import configure_logger
 from app.core.scheduler import daily_midnight_trigger, scheduler

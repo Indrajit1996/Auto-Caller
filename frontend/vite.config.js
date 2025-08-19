@@ -5,7 +5,6 @@ import { defineConfig } from 'vite';
 
 // Load environment variables in the correct order
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
-dotenv.config({ path: path.resolve(__dirname, '.env.local'), override: true });
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -18,7 +17,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      '/api': process.env.VITE_API_URL_DEV || 'http://localhost:8000',
+      '/api': process.env.VITE_API_URL_DEV,
     },
   },
   watchOptions: {

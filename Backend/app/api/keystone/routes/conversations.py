@@ -175,4 +175,4 @@ def update_message(
     db.add(db_message)
     db.commit()
     db.refresh(db_message)
-    return db_message 
+    return db_message

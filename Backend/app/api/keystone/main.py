@@ -10,7 +10,7 @@ from app.api.keystone.routes import (
     users,
     utils,
 )
-from app.api.endpoints import calls
+from app.api.keystone.routes import calls
 
 api_router = APIRouter()
 api_router.include_router(auth.router)

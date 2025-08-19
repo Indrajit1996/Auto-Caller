@@ -571,4 +571,4 @@ async def get_recent_interactions_temp():
         return {"success": True, "interactions": []}
     except Exception as e:
         logger.error(f"Error reading temp call interactions log: {e}")
-        return {"success": False, "error": str(e)} 
+        return {"success": False, "error": str(e)}

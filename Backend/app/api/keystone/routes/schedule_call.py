@@ -76,4 +76,4 @@ async def schedule_call(request: Request):
             return {"status": "scheduled", "rule_name": rule_name, "recurring_time": recurring_time, "recurring_days": recurring_days}
     except Exception as e:
         print(f"Error scheduling call: {str(e)}")
-        return {"status": "error", "detail": str(e)} 
+        return {"status": "error", "detail": str(e)}

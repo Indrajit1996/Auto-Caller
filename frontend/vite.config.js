@@ -1,8 +1,9 @@
-import react from '@vitejs/plugin-react-swc';
+import react from '@vitejs/plugin-react';
 import dotenv from 'dotenv';
 import path from 'path';
 import { defineConfig } from 'vite';
 
+// Load environment variables in the correct order
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 // https://vitejs.dev/config/

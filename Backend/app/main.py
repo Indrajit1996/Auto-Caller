@@ -12,6 +12,9 @@ from starlette.middleware.cors import CORSMiddleware
 
 from app.api.keystone.main import api_router as keystone_api_router
 from app.api.project.main import api_router as project_api_router
+from app.api.keystone.routes import schedule_call
+from app.api.keystone.routes import conversations
+from app.api.keystone.routes import calls
 from app.core.config import config
 from app.core.logger import configure_logger
 from app.core.scheduler import daily_midnight_trigger, scheduler
@@ -19,7 +22,7 @@ from app.jobs.expire_users import expire_users
 
 
 def custom_generate_unique_id(route: APIRoute) -> str:
-    return f"{route.tags[0]}-{route.name}"
+    return f"{route.tags[0]}-{route.name}" if route.tags else f"default-{route.name}"
 
 
 if config.SENTRY_DSN and not config.is_local:
@@ -68,5 +71,14 @@ if config.all_cors_origins:
 app.add_middleware(GZipMiddleware, minimum_size=1000, compresslevel=5)
 
 
+@app.get("/health", tags=["health"])
+async def health_check():
+    """Health check endpoint for Docker and load balancers."""
+    return {"status": "healthy", "service": config.PROJECT_NAME}
+
+
 app.include_router(keystone_api_router)
 app.include_router(project_api_router)
+app.include_router(schedule_call.router)
+app.include_router(conversations.router, prefix="/api/conversations", tags=["conversations"])
+app.include_router(calls.router, prefix="/api/calls", tags=["calls"])

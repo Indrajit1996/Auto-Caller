@@ -107,54 +107,30 @@ class TwilioService:
             return None
 
     def make_call(self, to_number: str, message: str, voice_id: str = "Zdsf4NBMlHR5zJJ72y9q") -> Dict[str, Any]:
-        """Make an interactive call using ElevenLabs audio, then record and transcribe user responses."""
+        """Make an intelligent conversation call using AI."""
         try:
             if not self.client:
                 raise Exception("Twilio client not initialized")
             
-            logger.info(f"Making interactive call to {to_number} with message: {message[:50]}...")
+            logger.info(f"Making intelligent call to {to_number} with message: {message[:50]}...")
             logger.info(f"Using Twilio phone number: {self.phone_number}")
 
-            # Get webhook URL for handling recordings
+            # Get webhook URL for intelligent conversation
             webhook_base_url = os.getenv("WEBHOOK_BASE_URL", "http://localhost:8000")
-            recording_webhook = f"{webhook_base_url}/api/calls/handle-recording"
-            transcription_webhook = f"{webhook_base_url}/api/calls/handle-transcription"
+            conversation_webhook = f"{webhook_base_url}/api/calls/respond-and-record"
 
-            # Try ElevenLabs TTS + S3 for initial message
-            audio_url = self.text_to_speech(message, voice_id)
-            if audio_url:
-                logger.info(f"Using ElevenLabs audio via S3: {audio_url}")
-                # Play ElevenLabs audio, then record user response
-                twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
+            # Use the intelligent conversation webhook
+            twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Play>{audio_url}</Play>
-    <Record 
-        action="{recording_webhook}" 
-        method="POST" 
-        maxLength="60" 
-        playBeep="true" 
-        timeout="5" 
-        transcribe="true" 
-        transcribeCallback="{transcription_webhook}"
-        recordingStatusCallback="{recording_webhook}"
-    />
-</Response>'''
-            else:
-                logger.warning("Falling back to Twilio TTS <Say>")
-                # Fallback to Twilio TTS, then record
-                twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-    <Say voice="alice" speed="slow">{message}</Say>
-    <Record 
-        action="{recording_webhook}" 
-        method="POST" 
-        maxLength="60" 
-        playBeep="true" 
-        timeout="5" 
-        transcribe="true" 
-        transcribeCallback="{transcription_webhook}"
-        recordingStatusCallback="{recording_webhook}"
-    />
+    <Gather 
+        input="speech" 
+        timeout="30" 
+        speech_timeout="auto" 
+        action="{conversation_webhook}?conversation_turn=1" 
+        method="POST"
+    >
+        <Say voice="alice" language="en-US">{message}</Say>
+    </Gather>
 </Response>'''
 
             call = self.client.calls.create(
@@ -162,14 +138,12 @@ class TwilioService:
                 to=to_number,
                 from_=self.phone_number,
             )
-            logger.info(f"Interactive call initiated. SID: {call.sid}, Status: {call.status}")
+            logger.info(f"Intelligent call initiated. SID: {call.sid}, Status: {call.status}")
             return {
                 "success": True,
                 "call_sid": call.sid,
                 "status": call.status,
-                "audio_url": audio_url,
-                "recording_webhook": recording_webhook,
-                "transcription_webhook": transcription_webhook,
+                "conversation_webhook": conversation_webhook,
                 "to": to_number,
                 "from": self.phone_number,
             }

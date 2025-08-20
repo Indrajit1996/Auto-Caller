@@ -110,6 +110,15 @@ class Config(BaseSettings):
     TWILIO_PHONE_NUMBER: str | None = None
     WEBHOOK_BASE_URL: str | None = None
 
+    # ==== ElevenLabs ====
+    ELEVENLABS_API_KEY: str | None = None
+    ELEVENLABS_VOICE_ID: str = "Zdsf4NBMlHR5zJJ72y9q"  # Kaymi Malave - Puerto Rican female voice
+
+    # ==== OpenAI ====
+    OPENAI_API_KEY: str | None = None
+    OPENAI_CONVERSATION_API_KEY: str | None = None
+    OPENAI_MODEL: str = "gpt-3.5-turbo"
+
     # ==== CORS ====
     # BACKEND_CORS_ORIGINS: Annotated[
     #     list[AnyUrl] | str, BeforeValidator(parse_cors)

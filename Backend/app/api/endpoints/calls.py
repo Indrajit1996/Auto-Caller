@@ -12,6 +12,8 @@ from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.date import DateTrigger
 from app.core.scheduler import scheduler
 from app.services.twilio_service import TwilioService
+from app.services.elevenlabs_service import ElevenLabsService
+from app.services.openai_service import OpenAIService
 from app.core.db import SessionLocal
 from app.models import CallSession, CallInteraction
 import requests
@@ -421,6 +423,136 @@ async def handle_transcription(request: Request):
     except Exception as e:
         logger.error(f"Error handling transcription: {e}")
         return Response(content="Error", media_type="text/plain", status_code=500)
+
+async def _generate_elevenlabs_audio(text: str, call_sid: str) -> str:
+    """Generate ElevenLabs audio and return the S3 URL."""
+    try:
+        elevenlabs_service = ElevenLabsService()
+        s3_url, audio_bytes = await elevenlabs_service.generate_speech_and_upload(text)
+        logger.info(f"[{call_sid}] Generated ElevenLabs audio: {s3_url}")
+        return s3_url
+    except Exception as e:
+        logger.error(f"[{call_sid}] ElevenLabs error: {e}")
+        return None
+
+@router.post("/respond-and-record")
+async def respond_and_record(request: Request):
+    """Webhook endpoint for intelligent conversation with AI."""
+    try:
+        # Get form data from Twilio
+        form_data = await request.form()
+        
+        # Extract parameters
+        call_sid = form_data.get("CallSid", "")
+        speech_text = form_data.get("SpeechResult", "")
+        confidence = form_data.get("Confidence", "")
+        conversation_turn = request.query_params.get("conversation_turn", "1")
+        turn_count = int(conversation_turn)
+        
+        logger.info(f"[{call_sid}] Turn {turn_count}: User said: '{speech_text}' (confidence: {confidence})")
+        
+        # Check for goodbye keywords
+        should_end_call = False
+        if speech_text:
+            goodbye_keywords = ["bye", "goodbye", "end call", "hang up", "stop", "quit"]
+            if any(keyword in speech_text.lower() for keyword in goodbye_keywords):
+                should_end_call = True
+                logger.info(f"[{call_sid}] Goodbye detected: {speech_text}")
+        
+        # Check turn limit (4 turns = 3 full exchanges + final goodbye)
+        if turn_count == 4:  # End after exactly 4 turns (which gives us 3 full exchanges)
+            should_end_call = True
+            logger.info(f"[{call_sid}] Turn limit reached: {turn_count}")
+        
+        # Generate AI response
+        message = ""
+        if should_end_call and turn_count == 4:
+            # Generate a proper response to the user's input first
+            if speech_text:
+                try:
+                    openai_service = OpenAIService()
+                    response_message = await openai_service.generate_conversation_response(
+                        conversation_history=[],
+                        user_input=speech_text
+                    )
+                    if response_message:
+                        message = response_message + " It was great talking to you! Take care and I'll check in on you again soon. Goodbye!"
+                    else:
+                        message = f"Thank you for sharing that with me. It was great talking to you! Take care and I'll check in on you again soon. Goodbye!"
+                except Exception as e:
+                    logger.error(f"OpenAI error on final turn: {e}")
+                    message = f"Thank you for sharing that with me. It was great talking to you! Take care and I'll check in on you again soon. Goodbye!"
+            else:
+                message = "It was great talking to you! Take care and I'll check in on you again soon. Goodbye!"
+        else:
+            # Generate normal conversation response
+            try:
+                openai_service = OpenAIService()
+                message = await openai_service.generate_conversation_response(
+                    conversation_history=[],
+                    user_input=speech_text if speech_text else "Hello"
+                )
+                if not message:
+                    message = "I'm here to check in on you. How are you doing today?"
+            except Exception as e:
+                logger.error(f"OpenAI error: {e}")
+                message = "I'm here to check in on you. How are you doing today?"
+        
+        # Generate ElevenLabs audio
+        audio_url = None
+        try:
+            audio_url = await _generate_elevenlabs_audio(message, call_sid)
+        except Exception as e:
+            logger.error(f"[{call_sid}] Failed to generate ElevenLabs audio: {e}")
+        
+        # Create TwiML response
+        from twilio.twiml import VoiceResponse
+        twiml = VoiceResponse()
+        
+        if should_end_call:
+            logger.info(f"[{call_sid}] Ending call due to duration limit, goodbye, or turn limit")
+            twiml.hangup()
+        else:
+            # First, play the AI response
+            if audio_url:
+                twiml.play(audio_url)
+            else:
+                # Fallback to Twilio TTS
+                twiml.say(message, voice="alice", language="en-US")
+            
+            # Then gather user input
+            gather = twiml.gather(
+                input="speech",
+                timeout=30,
+                speech_timeout="auto",
+                action=f"/api/calls/respond-and-record?conversation_turn={turn_count + 1}",
+                method="POST"
+            )
+            
+            # Add "I am listening" message inside gather
+            if audio_url:
+                gather.play(await _generate_elevenlabs_audio("I am listening", call_sid))
+            else:
+                gather.say("I am listening", voice="alice", language="en-US")
+        
+        logger.info(f"[{call_sid}] Generated TwiML response for turn {turn_count}")
+        return Response(content=str(twiml), media_type="application/xml")
+        
+    except Exception as e:
+        logger.error(f"Error in respond-and-record: {e}")
+        # Return error TwiML
+        from twilio.twiml import VoiceResponse
+        twiml = VoiceResponse()
+        twiml.say("Sorry, there was an error. Let me try again.", voice="alice", language="en-US")
+        gather = twiml.gather(
+            input="speech",
+            timeout=30,
+            speech_timeout="auto",
+            action="/api/calls/respond-and-record",
+            method="POST"
+        )
+        gather.say("I am listening", voice="alice", language="en-US")
+        return Response(content=str(twiml), media_type="application/xml")
 
 def _generate_response_to_user(user_message: str) -> str:
     """Generate a response based on what the user said."""

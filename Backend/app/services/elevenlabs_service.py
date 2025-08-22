@@ -11,18 +11,18 @@ logger = logging.getLogger(__name__)
 
 class ElevenLabsService:
     def __init__(self):
-        self.api_key = config.ELEVENLABS_API_KEY
+        self.api_key = os.getenv("ELEVENLABS_API_KEY")
         self.base_url = "https://api.elevenlabs.io/v1"
-        self.voice_id = config.ELEVENLABS_VOICE_ID or "Zdsf4NBMlHR5zJJ72y9q"  # Kaymi Malave - Puerto Rican female voice
+        self.voice_id = os.getenv("ELEVENLABS_VOICE_ID", "Zdsf4NBMlHR5zJJ72y9q")  # Kaymi Malave - Puerto Rican female voice
         
         # AWS S3 setup for audio storage
         self.s3_client = boto3.client(
             's3',
-            aws_access_key_id=config.AWS_ACCESS_KEY_ID,
-            aws_secret_access_key=config.AWS_SECRET_ACCESS_KEY,
-            region_name=config.AWS_REGION or 'us-east-1'
+            aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
+            aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
+            region_name=os.getenv("AWS_REGION", 'us-east-1')
         )
-        self.s3_bucket = config.AWS_S3_BUCKET
+        self.s3_bucket = os.getenv("AWS_S3_BUCKET")
         
         if not self.api_key:
             logger.error("ELEVENLABS_API_KEY not found in environment variables")

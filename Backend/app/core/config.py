@@ -119,6 +119,12 @@ class Config(BaseSettings):
     OPENAI_CONVERSATION_API_KEY: str | None = None
     OPENAI_MODEL: str = "gpt-3.5-turbo"
 
+    # ==== AWS ====
+    AWS_ACCESS_KEY_ID: str | None = None
+    AWS_SECRET_ACCESS_KEY: str | None = None
+    AWS_REGION: str = "us-east-2"
+    AWS_S3_BUCKET: str | None = None
+
     # ==== CORS ====
     # BACKEND_CORS_ORIGINS: Annotated[
     #     list[AnyUrl] | str, BeforeValidator(parse_cors)

@@ -1,5 +1,6 @@
 import openai
 import logging
+import os
 from app.core.config import config
 from typing import List, Dict, Optional
 
@@ -7,12 +8,15 @@ logger = logging.getLogger(__name__)
 
 class OpenAIService:
     def __init__(self):
-        self.client = openai.OpenAI(api_key=config.OPENAI_CONVERSATION_API_KEY)
-        self.model = config.OPENAI_CONVERSATION_MODEL or "gpt-3.5-turbo"
+        api_key = os.getenv("OPENAI_CONVERSATION_API_KEY")
+        model = os.getenv("OPENAI_MODEL", "gpt-3.5-turbo")
         
-        if not config.OPENAI_CONVERSATION_API_KEY:
+        if not api_key:
             logger.error("OPENAI_CONVERSATION_API_KEY not found in environment variables")
             raise ValueError("OPENAI_CONVERSATION_API_KEY not found in environment variables")
+        
+        self.client = openai.OpenAI(api_key=api_key)
+        self.model = model
     
     async def generate_conversation_response(
         self, 

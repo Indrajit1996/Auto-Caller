@@ -82,6 +82,8 @@ def _job_func(to_number: str, message: str, voice_id: str):
 async def make_call(request: CallRequest):
     """Make a call immediately or schedule it."""
     try:
+        logger.info(f"DEBUG: make_call endpoint called with to={request.to}, message={request.message[:50]}...")
+        
         if request.schedule:
             # Schedule the call
             parsed_time = _parse_schedule(request.schedule)
@@ -99,7 +101,10 @@ async def make_call(request: CallRequest):
             return {"status": "scheduled", "job_id": job_id, "scheduled_time": parsed_time.isoformat()}
         else:
             # Make immediate call
+            logger.info(f"DEBUG: About to call twilio_service.make_call")
             result = twilio_service.make_call(request.to, request.message, request.voice_id)
+            logger.info(f"DEBUG: twilio_service.make_call returned: {result}")
+            
             if result["success"]:
                 logger.info(f"Call initiated: {result['call_sid']}")
                 # --- DB LOGIC START ---
@@ -442,76 +447,41 @@ async def respond_and_record(request: Request):
         # Get form data from Twilio
         form_data = await request.form()
         
+        # DEBUG: Log all request parameters
+        logger.info(f"DEBUG: Request URL: {request.url}")
+        logger.info(f"DEBUG: Query params: {request.query_params}")
+        logger.info(f"DEBUG: Form data: {dict(form_data)}")
+        
         # Extract parameters
         call_sid = form_data.get("CallSid", "")
         speech_text = form_data.get("SpeechResult", "")
         confidence = form_data.get("Confidence", "")
-        conversation_turn = request.query_params.get("conversation_turn", "1")
-        turn_count = int(conversation_turn)
         
-        logger.info(f"[{call_sid}] Turn {turn_count}: User said: '{speech_text}' (confidence: {confidence})")
+        logger.info(f"[{call_sid}] User said: '{speech_text}' (confidence: {confidence})")
         
-        # Check for goodbye keywords
+        # Check for goodbye keywords only
         should_end_call = False
         if speech_text:
             goodbye_keywords = ["bye", "goodbye", "end call", "hang up", "stop", "quit"]
             if any(keyword in speech_text.lower() for keyword in goodbye_keywords):
                 should_end_call = True
                 logger.info(f"[{call_sid}] Goodbye detected: {speech_text}")
-                # Force turn count to 4 when goodbye is detected to trigger final response logic
-                turn_count = 4
-        
-        # Check turn limit (4 turns = 3 full exchanges + final goodbye)
-        if turn_count == 4:  # End after exactly 4 turns (which gives us 3 full exchanges)
-            should_end_call = True
-            logger.info(f"[{call_sid}] Turn limit reached: {turn_count}")
         
         # Generate AI response
         message = ""
-        if should_end_call and turn_count == 4:
-            # Generate a proper response to the user's input first (NO QUESTIONS)
+        if should_end_call:
+            # Generate a proper goodbye response
             if speech_text:
                 try:
-                    # For final turn, generate a response without questions
                     openai_service = OpenAIService()
-                    # Use a different prompt for final response that doesn't ask questions
                     final_response = await openai_service.generate_final_response(speech_text)
                     if final_response:
-                        # Ensure no questions in final response using a for loop
-                        cleaned_response = final_response
-                        question_indicators = ["?", "how", "what", "when", "where", "why", "who", "which", "do you", "are you", "can you", "would you", "could you", "will you", "have you", "did you", "is there", "are there"]
-                        
-                        # Check each sentence for questions
-                        sentences = cleaned_response.split('.')
-                        non_question_sentences = []
-                        
-                        for sentence in sentences:
-                            sentence = sentence.strip()
-                            if sentence:
-                                # Check if sentence contains question indicators
-                                has_question = False
-                                for indicator in question_indicators:
-                                    if indicator.lower() in sentence.lower():
-                                        has_question = True
-                                        break
-                                
-                                # Only keep sentences without questions
-                                if not has_question:
-                                    non_question_sentences.append(sentence)
-                        
-                        # Reconstruct response without questions
-                        cleaned_response = '. '.join(non_question_sentences)
-                        
-                        # If all sentences were questions, use a default response
-                        if not cleaned_response.strip():
-                            cleaned_response = "Thank you for sharing that with me."
-                        
-                        message = cleaned_response + " It was great talking to you! Take care and I'll check in on you again soon. Goodbye!"
+                        message = final_response + " It was great talking to you! Take care and I'll check in on you again soon. Goodbye!"
                     else:
-                        message = f"Thank you for sharing that with me. It was great talking to you! Take care and I'll check in on you again soon. Goodbye!"
+                        message = "Thank you for sharing that with me. It was great talking to you! Take care and I'll check in on you again soon. Goodbye!"
                 except Exception as e:
                     logger.error(f"OpenAI error on final turn: {e}")
-                    message = f"Thank you for sharing that with me. It was great talking to you! Take care and I'll check in on you again soon. Goodbye!"
+                    message = "Thank you for sharing that with me. It was great talking to you! Take care and I'll check in on you again soon. Goodbye!"
             else:
                 message = "It was great talking to you! Take care and I'll check in on you again soon. Goodbye!"
         else:
@@ -525,11 +495,7 @@ async def respond_and_record(request: Request):
                 if not message:
                     message = "I'm here to check in on you. How are you doing today?"
                 
-                # If this is the final turn (turn 3, since turn 4 is the goodbye), ensure no questions
-                if turn_count == 3:
-                    logger.info(f"[{call_sid}] Final conversation turn - using simple response")
-                    # Use a simple, non-question response for the final turn
-                    message = "I understand. Thank you for sharing that with me."
+
                     
             except Exception as e:
                 logger.error(f"OpenAI error: {e}")
@@ -543,7 +509,7 @@ async def respond_and_record(request: Request):
             logger.error(f"[{call_sid}] Failed to generate ElevenLabs audio: {e}")
         
         # Create TwiML response
-        from twilio.twiml import VoiceResponse
+        from twilio.twiml.voice_response import VoiceResponse
         twiml = VoiceResponse()
         
         if should_end_call:
@@ -565,11 +531,13 @@ async def respond_and_record(request: Request):
                 twiml.say(message, voice="alice", language="en-US")
             
             # Then gather user input
+            webhook_base_url = os.getenv("WEBHOOK_BASE_URL", "http://localhost:8000")
+            conversation_webhook = f"{webhook_base_url}/api/calls/respond-and-record"
             gather = twiml.gather(
                 input="speech",
-                timeout=30,
+                timeout=10,
                 speech_timeout="auto",
-                action=f"/api/calls/respond-and-record?conversation_turn={turn_count + 1}",
+                action=conversation_webhook,
                 method="POST"
             )
             
@@ -588,20 +556,22 @@ async def respond_and_record(request: Request):
             else:
                 gather.say("I am listening", voice="alice", language="en-US")
         
-        logger.info(f"[{call_sid}] Generated TwiML response for turn {turn_count}")
+        logger.info(f"[{call_sid}] Generated TwiML response")
         return Response(content=str(twiml), media_type="application/xml")
         
     except Exception as e:
         logger.error(f"Error in respond-and-record: {e}")
         # Return error TwiML
-        from twilio.twiml import VoiceResponse
+        from twilio.twiml.voice_response import VoiceResponse
         twiml = VoiceResponse()
         twiml.say("Sorry, there was an error. Let me try again.", voice="alice", language="en-US")
+        webhook_base_url = os.getenv("WEBHOOK_BASE_URL", "http://localhost:8000")
+        conversation_webhook = f"{webhook_base_url}/api/calls/respond-and-record"
         gather = twiml.gather(
             input="speech",
-            timeout=30,
+            timeout=10,
             speech_timeout="auto",
-            action="/api/calls/respond-and-record",
+            action=conversation_webhook,
             method="POST"
         )
         gather.say("I am listening", voice="alice", language="en-US")

@@ -125,14 +125,16 @@ class TwilioService:
 <Response>
     <Gather 
         input="speech" 
-        timeout="30" 
+        timeout="10" 
         speech_timeout="auto" 
-        action="{conversation_webhook}?conversation_turn=1" 
-        method="POST"
+        action="{conversation_webhook}" 
+        method="POST" 
     >
         <Say voice="alice" language="en-US">{message}</Say>
     </Gather>
 </Response>'''
+            
+            logger.info(f"Generated TwiML: {twiml}")
 
             call = self.client.calls.create(
                 twiml=twiml,
@@ -275,7 +277,7 @@ class TwilioService:
                 
             except Exception as twilio_exc:
                 logger.error(f"Failed to fetch recording from Twilio: {twilio_exc}")
-                return None
+            return None
             
         except Exception as exc:
             logger.error(f"Failed to process recording: {exc}")

@@ -118,6 +118,7 @@ class TwilioService:
             # Get webhook URL for intelligent conversation
             webhook_base_url = os.getenv("WEBHOOK_BASE_URL", "http://localhost:8000")
             conversation_webhook = f"{webhook_base_url}/api/calls/respond-and-record"
+            logger.info(f"Using webhook URL: {conversation_webhook}")
 
             # Use the intelligent conversation webhook
             twiml = f'''<?xml version="1.0" encoding="UTF-8"?>

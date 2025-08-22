@@ -84,6 +84,56 @@ class OpenAIService:
             logger.error(f"OpenAI API error: {e}")
             return "That's interesting! Tell me more about that."
     
+    async def generate_final_response(self, user_input: str, max_tokens: int = 100) -> Optional[str]:
+        """
+        Generate a final response without asking questions - just acknowledge and respond.
+        """
+        try:
+            messages = [
+                {
+                    "role": "system",
+                    "content": """You are a caring AI friend who is ending a conversation. Your role is to:
+                    - Acknowledge what the user just said
+                    - Show empathy and understanding
+                    - Provide a brief, supportive response
+                    - CRITICAL: DO NOT ask any questions whatsoever
+                    - CRITICAL: DO NOT use question marks (?)
+                    - CRITICAL: DO NOT use words like how, what, when, where, why, who, which
+                    - CRITICAL: DO NOT use phrases like "do you", "are you", "can you", "would you", "could you", "will you", "have you", "did you"
+                    - Keep responses under 25 words
+                    - Be warm and caring but don't continue the conversation
+                    - Just acknowledge and respond with statements only
+                    - Use only declarative sentences, never interrogative sentences"""
+                },
+                {
+                    "role": "user",
+                    "content": user_input
+                }
+            ]
+            
+            # Generate response using OpenAI API
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=messages,
+                max_tokens=max_tokens,
+                temperature=0.7,
+                n=1,
+                stop=None,
+                frequency_penalty=0,
+                presence_penalty=0
+            )
+            
+            assistant_message = response.choices[0].message.content if response.choices[0].message else "Thank you for sharing that with me."
+            
+            # Log response for debugging
+            logger.info(f"OpenAI Final Response: {assistant_message}")
+            
+            return assistant_message.strip()
+            
+        except Exception as e:
+            logger.error(f"OpenAI API error in final response: {e}")
+            return "Thank you for sharing that with me."
+    
     async def generate_contextual_response(
         self, 
         user_input: str, 

@@ -8,7 +8,7 @@ function toUTCISOString(localDateString) {
 
 export default function ScheduleCallForm() {
   const [to, setTo] = useState("");
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState("Hello! This is your friendly automated call! I am here to check in on you and see how you are doing today.");
   const [scheduledTime, setScheduledTime] = useState("");
   const [utcInput, setUtcInput] = useState("");
   const [status, setStatus] = useState("");
@@ -110,6 +110,9 @@ export default function ScheduleCallForm() {
         Message:
         <input value={message} onChange={e => setMessage(e.target.value)} required style={{ width: "100%", marginTop: 4 }} />
       </label>
+      <div style={{ marginBottom: 8, fontSize: 12, color: '#666', fontStyle: 'italic' }}>
+        This message will trigger an intelligent AI conversation with ElevenLabs voice synthesis. The AI will ask follow-up questions and engage in a natural conversation.
+      </div>
       <label style={{ display: "block", marginBottom: 8 }}>
         Call Type:
         <select value={callType} onChange={e => setCallType(e.target.value)} style={{ width: "100%", marginTop: 4 }}>

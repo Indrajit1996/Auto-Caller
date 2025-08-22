@@ -458,6 +458,8 @@ async def respond_and_record(request: Request):
             if any(keyword in speech_text.lower() for keyword in goodbye_keywords):
                 should_end_call = True
                 logger.info(f"[{call_sid}] Goodbye detected: {speech_text}")
+                # Force turn count to 4 when goodbye is detected to trigger final response logic
+                turn_count = 4
         
         # Check turn limit (4 turns = 3 full exchanges + final goodbye)
         if turn_count == 4:  # End after exactly 4 turns (which gives us 3 full exchanges)
@@ -467,16 +469,44 @@ async def respond_and_record(request: Request):
         # Generate AI response
         message = ""
         if should_end_call and turn_count == 4:
-            # Generate a proper response to the user's input first
+            # Generate a proper response to the user's input first (NO QUESTIONS)
             if speech_text:
                 try:
+                    # For final turn, generate a response without questions
                     openai_service = OpenAIService()
-                    response_message = await openai_service.generate_conversation_response(
-                        conversation_history=[],
-                        user_input=speech_text
-                    )
-                    if response_message:
-                        message = response_message + " It was great talking to you! Take care and I'll check in on you again soon. Goodbye!"
+                    # Use a different prompt for final response that doesn't ask questions
+                    final_response = await openai_service.generate_final_response(speech_text)
+                    if final_response:
+                        # Ensure no questions in final response using a for loop
+                        cleaned_response = final_response
+                        question_indicators = ["?", "how", "what", "when", "where", "why", "who", "which", "do you", "are you", "can you", "would you", "could you", "will you", "have you", "did you", "is there", "are there"]
+                        
+                        # Check each sentence for questions
+                        sentences = cleaned_response.split('.')
+                        non_question_sentences = []
+                        
+                        for sentence in sentences:
+                            sentence = sentence.strip()
+                            if sentence:
+                                # Check if sentence contains question indicators
+                                has_question = False
+                                for indicator in question_indicators:
+                                    if indicator.lower() in sentence.lower():
+                                        has_question = True
+                                        break
+                                
+                                # Only keep sentences without questions
+                                if not has_question:
+                                    non_question_sentences.append(sentence)
+                        
+                        # Reconstruct response without questions
+                        cleaned_response = '. '.join(non_question_sentences)
+                        
+                        # If all sentences were questions, use a default response
+                        if not cleaned_response.strip():
+                            cleaned_response = "Thank you for sharing that with me."
+                        
+                        message = cleaned_response + " It was great talking to you! Take care and I'll check in on you again soon. Goodbye!"
                     else:
                         message = f"Thank you for sharing that with me. It was great talking to you! Take care and I'll check in on you again soon. Goodbye!"
                 except Exception as e:
@@ -494,6 +524,13 @@ async def respond_and_record(request: Request):
                 )
                 if not message:
                     message = "I'm here to check in on you. How are you doing today?"
+                
+                # If this is the final turn (turn 3, since turn 4 is the goodbye), ensure no questions
+                if turn_count == 3:
+                    logger.info(f"[{call_sid}] Final conversation turn - using simple response")
+                    # Use a simple, non-question response for the final turn
+                    message = "I understand. Thank you for sharing that with me."
+                    
             except Exception as e:
                 logger.error(f"OpenAI error: {e}")
                 message = "I'm here to check in on you. How are you doing today?"
@@ -511,6 +548,13 @@ async def respond_and_record(request: Request):
         
         if should_end_call:
             logger.info(f"[{call_sid}] Ending call due to duration limit, goodbye, or turn limit")
+            # Play the final AI response before hanging up
+            if audio_url:
+                twiml.play(audio_url)
+            else:
+                # Fallback to Twilio TTS
+                twiml.say(message, voice="alice", language="en-US")
+            # Then hang up
             twiml.hangup()
         else:
             # First, play the AI response
@@ -531,7 +575,16 @@ async def respond_and_record(request: Request):
             
             # Add "I am listening" message inside gather
             if audio_url:
-                gather.play(await _generate_elevenlabs_audio("I am listening", call_sid))
+                # Try to generate ElevenLabs audio for "I am listening"
+                try:
+                    listening_audio = await _generate_elevenlabs_audio("I am listening", call_sid)
+                    if listening_audio:
+                        gather.play(listening_audio)
+                    else:
+                        gather.say("I am listening", voice="alice", language="en-US")
+                except Exception as e:
+                    logger.error(f"[{call_sid}] Failed to generate ElevenLabs audio for 'I am listening': {e}")
+                    gather.say("I am listening", voice="alice", language="en-US")
             else:
                 gather.say("I am listening", voice="alice", language="en-US")
         

@@ -85,7 +85,7 @@ def set_config(
 def run_server(
     host: Annotated[str, typer.Option(help="Host to bind")] = "0.0.0.0",
     port: Annotated[int, typer.Option(help="Port to bind")] = 8000,
-    reload: Annotated[bool, typer.Option(help="Enable auto-reload")] = config.is_local,
+    reload: Annotated[bool, typer.Option(help="Enable auto-reload")] = False,
     workers: Annotated[
         int | None, typer.Option(help="Number of worker processes")
     ] = None,

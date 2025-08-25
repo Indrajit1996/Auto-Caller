@@ -46,7 +46,7 @@ class TwilioService:
             logger.warning("Twilio credentials not found")
 
     def text_to_speech(self, text: str, voice_id: str = "Zdsf4NBMlHR5zJJ72y9q") -> Optional[str]:
-        """Generate MP3 via ElevenLabs and return a public S3 URL."""
+        """Generate MP3 via ElevenLabs and return a public URL."""
         try:
             if not self.elevenlabs_api_key:
                 logger.error("ElevenLabs API key not configured")
@@ -80,24 +80,24 @@ class TwilioService:
             audio_bytes = resp.content
             logger.info(f"Received {len(audio_bytes)} bytes from ElevenLabs")
             
-            # Upload to S3 and return public URL
-            s3_key = f"tts/{uuid.uuid4()}.mp3"
+            # Save to local file and return URL
+            import os
+            webhook_base_url = os.getenv("WEBHOOK_BASE_URL", "http://localhost:8000")
+            audio_filename = f"{uuid.uuid4()}.mp3"
+            audio_path = f"/tmp/{audio_filename}"
+            
             try:
-                self.s3_client.put_object(
-                    Bucket=self.s3_bucket,
-                    Key=s3_key,
-                    Body=audio_bytes,
-                    ContentType="audio/mpeg"
-                )
-                logger.info(f"Uploaded ElevenLabs audio to S3: {s3_key}")
+                with open(audio_path, "wb") as f:
+                    f.write(audio_bytes)
+                logger.info(f"Saved ElevenLabs audio to local file: {audio_path}")
                 
-                # Return public S3 URL
-                s3_url = f"https://{self.s3_bucket}.s3.us-east-2.amazonaws.com/{s3_key}"
-                logger.info(f"S3 audio URL: {s3_url}")
-                return s3_url
+                # Return URL that will be served by our backend
+                audio_url = f"{webhook_base_url}/api/calls/audio-file/{audio_filename}"
+                logger.info(f"Audio URL: {audio_url}")
+                return audio_url
                 
             except Exception as e:
-                logger.error(f"Failed to upload to S3: {e}")
+                logger.error(f"Failed to save audio file: {e}")
                 return None
         except requests.exceptions.RequestException as exc:
             logger.error(f"ElevenLabs request failed: {exc}")
@@ -120,8 +120,27 @@ class TwilioService:
             conversation_webhook = f"{webhook_base_url}/api/calls/respond-and-record"
             logger.info(f"Using webhook URL: {conversation_webhook}")
 
+            # Generate ElevenLabs audio for the initial message
+            initial_audio_url = self.text_to_speech(message, voice_id)
+            
             # Use the intelligent conversation webhook
-            twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
+            if initial_audio_url:
+                # Use ElevenLabs audio
+                twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Gather 
+        input="speech" 
+        timeout="10" 
+        speech_timeout="auto" 
+        action="{conversation_webhook}" 
+        method="POST" 
+    >
+        <Play>{initial_audio_url}</Play>
+    </Gather>
+</Response>'''
+            else:
+                # Fallback to Twilio TTS
+                twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <Gather 
         input="speech" 

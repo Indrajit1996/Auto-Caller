@@ -151,6 +151,26 @@ def proxy_twilio_audio(recording_sid: str):
         return Response(content=f"Failed to fetch audio: {resp.status_code}", status_code=resp.status_code)
     return StreamingResponse(resp.raw, media_type="audio/mpeg")
 
+@router.get("/audio-file/{filename}")
+def serve_audio_file(filename: str):
+    """Serve locally stored audio files."""
+    import os
+    audio_path = f"/tmp/{filename}"
+    logger.info(f"Serving audio file: {audio_path}")
+    
+    if not os.path.exists(audio_path):
+        logger.error(f"Audio file not found: {audio_path}")
+        raise HTTPException(status_code=404, detail="Audio file not found")
+    
+    try:
+        with open(audio_path, "rb") as f:
+            audio_content = f.read()
+        logger.info(f"Served audio file: {filename}, size: {len(audio_content)} bytes")
+        return Response(content=audio_content, media_type="audio/mpeg")
+    except Exception as e:
+        logger.error(f"Error serving audio file {filename}: {e}")
+        raise HTTPException(status_code=500, detail="Error serving audio file")
+
 @router.get("/twiml")
 async def get_twiml(request: Request):
     """Webhook endpoint for Twilio to fetch TwiML instructions."""

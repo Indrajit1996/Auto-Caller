@@ -449,152 +449,139 @@ async def handle_transcription(request: Request):
         logger.error(f"Error handling transcription: {e}")
         return Response(content="Error", media_type="text/plain", status_code=500)
 
-async def _generate_elevenlabs_audio(text: str, call_sid: str) -> str:
-    """Generate ElevenLabs audio and return the S3 URL."""
+def _generate_elevenlabs_audio(text: str, call_sid: str) -> str:
+    """Generate ElevenLabs audio and return the local URL."""
+    logger.info(f"[{call_sid}] DEBUG: _generate_elevenlabs_audio called with text: {text[:50]}...")
     try:
-        elevenlabs_service = ElevenLabsService()
-        s3_url, audio_bytes = await elevenlabs_service.generate_speech_and_upload(text)
-        logger.info(f"[{call_sid}] Generated ElevenLabs audio: {s3_url}")
-        return s3_url
+        twilio_service = TwilioService()
+        logger.info(f"[{call_sid}] TwilioService initialized")
+        audio_url = twilio_service.text_to_speech(text)
+        logger.info(f"[{call_sid}] Generated ElevenLabs audio: {audio_url}")
+        return audio_url
     except Exception as e:
+        logger.error(f"[{call_sid}] EXCEPTION in _generate_elevenlabs_audio: {e}")
         logger.error(f"[{call_sid}] ElevenLabs error: {e}")
         return None
 
 @router.post("/respond-and-record")
 async def respond_and_record(request: Request):
     """Webhook endpoint for intelligent conversation with AI."""
+    import time
+    start_time = time.monotonic()
+    logger.info(f"=== CONVERSATION START: {start_time} ===")
+    
     try:
         # Get form data from Twilio
         form_data = await request.form()
         
-        # DEBUG: Log all request parameters
-        logger.info(f"DEBUG: Request URL: {request.url}")
-        logger.info(f"DEBUG: Query params: {request.query_params}")
-        logger.info(f"DEBUG: Form data: {dict(form_data)}")
-        
         # Extract parameters
         call_sid = form_data.get("CallSid", "")
         speech_text = form_data.get("SpeechResult", "")
-        confidence = form_data.get("Confidence", "")
+        confidence = form_data.get("Confidence", "0")
         
-        logger.info(f"[{call_sid}] User said: '{speech_text}' (confidence: {confidence})")
+        logger.info(f"[{call_sid}] User said: '{speech_text}' (confidence: {confidence}) - elapsed: {time.monotonic() - start_time:.2f}s")
         
         # Check for goodbye keywords only
-        should_end_call = False
-        if speech_text:
-            goodbye_keywords = ["bye", "goodbye", "end call", "hang up", "stop", "quit"]
-            if any(keyword in speech_text.lower() for keyword in goodbye_keywords):
-                should_end_call = True
-                logger.info(f"[{call_sid}] Goodbye detected: {speech_text}")
+        goodbye_keywords = ["goodbye", "bye", "good bye", "see you", "talk to you later", "end call", "hang up"]
+        is_goodbye = any(keyword.lower() in speech_text.lower() for keyword in goodbye_keywords)
         
-        # Generate AI response
-        message = ""
-        if should_end_call:
+        if is_goodbye:
             # Generate a proper goodbye response
             if speech_text:
                 try:
                     openai_service = OpenAIService()
-                    final_response = await openai_service.generate_final_response(speech_text)
-                    if final_response:
-                        message = final_response + " It was great talking to you! Take care and I'll check in on you again soon. Goodbye!"
-                    else:
-                        message = "Thank you for sharing that with me. It was great talking to you! Take care and I'll check in on you again soon. Goodbye!"
+                    message = await openai_service.generate_final_response(speech_text)
                 except Exception as e:
-                    logger.error(f"OpenAI error on final turn: {e}")
-                    message = "Thank you for sharing that with me. It was great talking to you! Take care and I'll check in on you again soon. Goodbye!"
+                    logger.error(f"Error generating final response: {e}")
+                    message = "Thank you for talking with me. Take care and have a wonderful day!"
             else:
-                message = "It was great talking to you! Take care and I'll check in on you again soon. Goodbye!"
+                message = "Thank you for talking with me. Take care and have a wonderful day!"
         else:
             # Generate normal conversation response
+            openai_start = time.monotonic()
+            logger.info(f"[{call_sid}] Starting OpenAI API call - elapsed: {openai_start - start_time:.2f}s")
             try:
                 openai_service = OpenAIService()
                 message = await openai_service.generate_conversation_response(
                     conversation_history=[],
                     user_input=speech_text if speech_text else "Hello"
                 )
+                openai_end = time.monotonic()
+                logger.info(f"[{call_sid}] OpenAI API call completed in {openai_end - openai_start:.2f}s - total elapsed: {openai_end - start_time:.2f}s")
                 if not message:
                     message = "I'm here to check in on you. How are you doing today?"
-                
-
-                    
             except Exception as e:
-                logger.error(f"OpenAI error: {e}")
+                openai_end = time.monotonic()
+                logger.error(f"OpenAI error after {openai_end - start_time:.2f}s: {e}")
                 message = "I'm here to check in on you. How are you doing today?"
         
         # Generate ElevenLabs audio
+        audio_start = time.monotonic()
+        logger.info(f"[{call_sid}] Starting ElevenLabs audio generation - elapsed: {audio_start - start_time:.2f}s")
         audio_url = None
         try:
-            audio_url = await _generate_elevenlabs_audio(message, call_sid)
+            audio_url = _generate_elevenlabs_audio(message, call_sid)
+            audio_end = time.monotonic()
+            logger.info(f"[{call_sid}] ElevenLabs audio generation completed in {audio_end - audio_start:.2f}s - total elapsed: {audio_end - start_time:.2f}s")
         except Exception as e:
-            logger.error(f"[{call_sid}] Failed to generate ElevenLabs audio: {e}")
+            audio_end = time.monotonic()
+            logger.error(f"[{call_sid}] Failed to generate ElevenLabs audio after {audio_end - start_time:.2f}s: {e}")
         
         # Create TwiML response
+        twiml_start = time.monotonic()
+        logger.info(f"[{call_sid}] Starting TwiML generation - elapsed: {twiml_start - start_time:.2f}s")
         from twilio.twiml.voice_response import VoiceResponse
         twiml = VoiceResponse()
         
-        if should_end_call:
-            logger.info(f"[{call_sid}] Ending call due to duration limit, goodbye, or turn limit")
-            # Play the final AI response before hanging up
-            if audio_url:
-                twiml.play(audio_url)
-            else:
-                # Fallback to Twilio TTS
-                twiml.say(message, voice="alice", language="en-US")
-            # Then hang up
-            twiml.hangup()
+        if audio_url:
+            # Play ElevenLabs audio
+            twiml.play(audio_url)
         else:
-            # First, play the AI response
-            if audio_url:
-                twiml.play(audio_url)
-            else:
-                # Fallback to Twilio TTS
-                twiml.say(message, voice="alice", language="en-US")
-            
-            # Then gather user input
-            webhook_base_url = os.getenv("WEBHOOK_BASE_URL", "http://localhost:8000")
-            conversation_webhook = f"{webhook_base_url}/api/calls/respond-and-record"
-            gather = twiml.gather(
-                input="speech",
-                timeout=10,
-                speech_timeout="auto",
-                action=conversation_webhook,
-                method="POST"
-            )
-            
-            # Add "I am listening" message inside gather
-            if audio_url:
-                # Try to generate ElevenLabs audio for "I am listening"
-                try:
-                    listening_audio = await _generate_elevenlabs_audio("I am listening", call_sid)
-                    if listening_audio:
-                        gather.play(listening_audio)
-                    else:
-                        gather.say("I am listening", voice="alice", language="en-US")
-                except Exception as e:
-                    logger.error(f"[{call_sid}] Failed to generate ElevenLabs audio for 'I am listening': {e}")
-                    gather.say("I am listening", voice="alice", language="en-US")
+            # Fallback to Twilio TTS
+            twiml.say(message, voice="alice", language="en-US")
+        
+        # Set up recording and listening for next response
+        webhook_base_url = os.getenv("WEBHOOK_BASE_URL", "http://localhost:8000")
+        conversation_webhook = f"{webhook_base_url}/api/calls/respond-and-record"
+        
+        # Smart speech recognition with auto timeout
+        gather = twiml.gather(
+            input="speech",
+            timeout=3,
+            speech_timeout="auto",
+            action=conversation_webhook,
+            method="POST",
+            speech_model="phone_call"
+        )
+        
+        # Try to generate ElevenLabs audio for "I am listening"
+        listening_start = time.monotonic()
+        logger.info(f"[{call_sid}] Starting 'I am listening' audio generation - elapsed: {listening_start - start_time:.2f}s")
+        try:
+            listening_audio = _generate_elevenlabs_audio("I am listening", call_sid)
+            listening_end = time.monotonic()
+            logger.info(f"[{call_sid}] 'I am listening' audio generation completed in {listening_end - listening_start:.2f}s - total elapsed: {listening_end - start_time:.2f}s")
+            if listening_audio:
+                gather.play(listening_audio)
             else:
                 gather.say("I am listening", voice="alice", language="en-US")
+        except Exception as e:
+            listening_end = time.monotonic()
+            logger.error(f"[{call_sid}] Failed to generate ElevenLabs audio for 'I am listening' after {listening_end - start_time:.2f}s: {e}")
+            gather.say("I am listening", voice="alice", language="en-US")
         
-        logger.info(f"[{call_sid}] Generated TwiML response")
+        twiml_end = time.monotonic()
+        logger.info(f"[{call_sid}] TwiML generation completed in {twiml_end - twiml_start:.2f}s - total elapsed: {twiml_end - start_time:.2f}s")
+        logger.info(f"[{call_sid}] CONVERSATION COMPLETE - Total time: {twiml_end - start_time:.2f}s")
         return Response(content=str(twiml), media_type="application/xml")
         
     except Exception as e:
-        logger.error(f"Error in respond-and-record: {e}")
-        # Return error TwiML
+        end_time = time.monotonic()
+        logger.error(f"Error in respond_and_record after {end_time - start_time:.2f}s: {e}")
+        # Return a simple response in case of error
         from twilio.twiml.voice_response import VoiceResponse
         twiml = VoiceResponse()
-        twiml.say("Sorry, there was an error. Let me try again.", voice="alice", language="en-US")
-        webhook_base_url = os.getenv("WEBHOOK_BASE_URL", "http://localhost:8000")
-        conversation_webhook = f"{webhook_base_url}/api/calls/respond-and-record"
-        gather = twiml.gather(
-            input="speech",
-            timeout=10,
-            speech_timeout="auto",
-            action=conversation_webhook,
-            method="POST"
-        )
-        gather.say("I am listening", voice="alice", language="en-US")
+        twiml.say("I'm sorry, there was an error. Please try again.", voice="alice", language="en-US")
         return Response(content=str(twiml), media_type="application/xml")
 
 def _generate_response_to_user(user_message: str) -> str:

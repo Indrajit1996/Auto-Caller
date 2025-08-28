@@ -63,11 +63,11 @@ class TwilioService:
             }
             payload = {
                 "text": slowed_text,
-                "model_id": "eleven_monolingual_v1",
+                "model_id": "eleven_turbo_v2",
                 "voice_settings": {
                     "stability": 0.5,
                     "similarity_boost": 0.5,
-                    "speaking_rate": 0.01
+                    "speaking_rate": 1.0
                 },
                 "optimization_level": 0
             }
@@ -128,12 +128,13 @@ class TwilioService:
                 # Use ElevenLabs audio
                 twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Gather 
-        input="speech" 
-        timeout="10" 
-        speech_timeout="auto" 
-        action="{conversation_webhook}" 
-        method="POST" 
+    <Gather
+        input="speech"
+        timeout="3"
+        speech_timeout="auto"
+        action="{conversation_webhook}"
+        method="POST"
+        speech_model="phone_call"
     >
         <Play>{initial_audio_url}</Play>
     </Gather>
@@ -142,12 +143,13 @@ class TwilioService:
                 # Fallback to Twilio TTS
                 twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Gather 
-        input="speech" 
-        timeout="10" 
-        speech_timeout="auto" 
-        action="{conversation_webhook}" 
-        method="POST" 
+    <Gather
+        input="speech"
+        timeout="3"
+        speech_timeout="auto"
+        action="{conversation_webhook}"
+        method="POST"
+        speech_model="phone_call"
     >
         <Say voice="alice" language="en-US">{message}</Say>
     </Gather>

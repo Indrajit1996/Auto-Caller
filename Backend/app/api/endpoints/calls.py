@@ -766,27 +766,9 @@ async def respond_and_record(request: Request):
                 db.refresh(user_interaction)
                 user_interaction_id = user_interaction.id
 
-                # Try to fetch the most recent recording from Twilio API
-                # Since Twilio doesn't include recording in this request, we need to fetch it
-                print(f"[RESPOND-AND-RECORD] No recording URL in form data - fetching from Twilio API...")
-                try:
-                    import time
-                    time.sleep(1)  # Wait 1 second for Twilio to process the recording
-
-                    # Fetch recordings for this call from Twilio
-                    from app.services.twilio_service import twilio_service as tw_service
-                    recordings = tw_service.client.recordings.list(call_sid=call_sid, limit=1)
-                    print(f"[RESPOND-AND-RECORD] recording url value  {call_sid}")
-                    print(f"[RESPOND-AND-RECORD] recording url value  {recordings}")
-                    if recordings:
-                        latest_recording = recordings[0]
-                        recording_sid = latest_recording.sid
-                        recording_url = f"https://api.twilio.com{latest_recording.uri.replace('.json', '')}"
-
-                        print(f"[RESPOND-AND-RECORD] Found recording: {recording_sid}")
-                        print(f"[RESPOND-AND-RECORD] Recording URL: {recording_url}")
-
-                        # Download and store in S3
+                if recording_url and recording_sid:
+                    print(f"[RESPOND-AND-RECORD] Found recording in webhook payload: {recording_sid}")
+                    try:
                         s3_audio_url = twilio_service.download_and_store_recording(recording_url, call_sid)
                         if s3_audio_url:
                             print(f"[RESPOND-AND-RECORD] SUCCESS: Stored recording in S3: {s3_audio_url}")
@@ -795,13 +777,47 @@ async def respond_and_record(request: Request):
                             user_interaction.recording_url = recording_url
                             db.commit()
                         else:
-                            print(f"[RESPOND-AND-RECORD] ERROR: Failed to download recording")
-                    else:
-                        print(f"[RESPOND-AND-RECORD] No recordings found for this call yet")
-                except Exception as rec_error:
-                    print(f"[RESPOND-AND-RECORD] EXCEPTION fetching recording: {rec_error}")
-                    import traceback
-                    traceback.print_exc()
+                            print(f"[RESPOND-AND-RECORD] ERROR: Failed to download recording from webhook URL")
+                    except Exception as rec_error:
+                        print(f"[RESPOND-AND-RECORD] EXCEPTION storing webhook recording: {rec_error}")
+                        import traceback
+                        traceback.print_exc()
+                else:
+                    # Fall back to fetching from Twilio REST API if the gather webhook did not include recording data yet
+                    print(f"[RESPOND-AND-RECORD] No recording URL in form data - fetching from Twilio API...")
+                    try:
+                        import time
+                        time.sleep(1)  # Wait 1 second for Twilio to process the recording
+
+                        # Fetch recordings for this call from Twilio
+                        from app.services.twilio_service import twilio_service as tw_service
+                        recordings = tw_service.client.recordings.list(call_sid=call_sid, limit=1)
+                        print(f"[RESPOND-AND-RECORD] recording url value  {call_sid}")
+                        print(f"[RESPOND-AND-RECORD] recording url value  {recordings}")
+                        if recordings:
+                            latest_recording = recordings[0]
+                            recording_sid = latest_recording.sid
+                            recording_url = f"https://api.twilio.com{latest_recording.uri.replace('.json', '')}"
+
+                            print(f"[RESPOND-AND-RECORD] Found recording: {recording_sid}")
+                            print(f"[RESPOND-AND-RECORD] Recording URL: {recording_url}")
+
+                            # Download and store in S3
+                            s3_audio_url = twilio_service.download_and_store_recording(recording_url, call_sid)
+                            if s3_audio_url:
+                                print(f"[RESPOND-AND-RECORD] SUCCESS: Stored recording in S3: {s3_audio_url}")
+                                user_interaction.s3_audio_url = s3_audio_url
+                                user_interaction.recording_sid = recording_sid
+                                user_interaction.recording_url = recording_url
+                                db.commit()
+                            else:
+                                print(f"[RESPOND-AND-RECORD] ERROR: Failed to download recording")
+                        else:
+                            print(f"[RESPOND-AND-RECORD] No recordings found for this call yet")
+                    except Exception as rec_error:
+                        print(f"[RESPOND-AND-RECORD] EXCEPTION fetching recording: {rec_error}")
+                        import traceback
+                        traceback.print_exc()
         except Exception as db_error:
             logger.error(f"[{call_sid}] Database error storing user speech: {db_error}")
             db.rollback()
@@ -900,7 +916,7 @@ async def respond_and_record(request: Request):
             action=conversation_webhook,
             method="POST",
             speech_model="phone_call",
-            recording_enabled=True,
+            record=True,
             recording_status_callback=recording_status_callback,
             recording_status_callback_method="POST"
         )

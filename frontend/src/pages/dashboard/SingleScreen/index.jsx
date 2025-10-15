@@ -47,12 +47,12 @@ const DashboardSingleScreen = () => {
         <Box sx={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
             <Typography variant="h5" sx={{ p: 2 }}>Dashboard</Typography>
             
-            <Paper sx={{ width: '100%', borderRadius: 0 }}>
+            {/* <Paper sx={{ width: '100%', borderRadius: 0 }}>
                 <Typography variant="h6" sx={{ p: 2, borderBottom: '1px solid #eee' }}>Summary of Past Conversations</Typography>
                 <ConversationSummary summary={summary} />
-            </Paper>
+            </Paper> */}
 
-            <Paper sx={{ mt: 2, p: 2 }}>
+            {/* <Paper sx={{ mt: 2, p: 2 }}>
                 <Typography variant="h6" sx={{ mb: 1 }}>Conversation History</Typography>
                 {history.length === 0 ? (
                     <Typography color="text.secondary">No closed chats yet.</Typography>
@@ -68,7 +68,7 @@ const DashboardSingleScreen = () => {
                         ))}
                     </List>
                 )}
-            </Paper>
+            </Paper> */}
 
             <Paper sx={{ mt: 2, p: 2 }}>
                 <Typography variant="h6" sx={{ mb: 1 }}>Make a Call</Typography>
@@ -76,9 +76,9 @@ const DashboardSingleScreen = () => {
             </Paper>
 
             {/* --- Add RecentCalls section below --- */}
-            <Paper sx={{ mt: 2, p: 2 }}>
+            {/* <Paper sx={{ mt: 2, p: 2 }}>
                 <RecentCalls />
-            </Paper>
+            </Paper> */}
         </Box>
     );
 };

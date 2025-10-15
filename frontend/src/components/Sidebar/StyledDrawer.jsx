@@ -3,7 +3,7 @@ import MuiDrawer from '@mui/material/Drawer';
 
 export const Drawer = styled(MuiDrawer, {
   shouldForwardProp: (prop) => !['open', 'drawerWidth', 'collapsedDrawerWidth'].includes(prop),
-})(({ theme, open, drawerWidth = 240, collapsedDrawerWidth = 65 }) => ({
+})(({ theme, open, drawerWidth = 240, collapsedDrawerWidth = 65, }) => ({
   width: drawerWidth,
   ...(open && {
     ...openedMixin(theme, drawerWidth),

@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
+import api from '@/api';
 
-const STORE_NAME = 'conversation-store';
+const STORE_NAME = 'conversation-store-1';
 
 const initialConversations = {
   1: [],
@@ -14,6 +15,8 @@ const useConversationStore = create(
       // State
       conversations: initialConversations,
       history: [], // Array of { userId, conversation, closedAt }
+      sessions: [],
+      loading: false,
 
       // Actions
       setConversations: (conversationsOrUpdater) => {
@@ -67,9 +70,9 @@ const useConversationStore = create(
       restoreFromHistory: (idx) => {
         const historyItem = get().history[idx];
         if (!historyItem) return;
-        
+
         const currentConversations = get().conversations;
-        
+
         set({
           conversations: {
             ...currentConversations,
@@ -80,12 +83,27 @@ const useConversationStore = create(
         // Remove from history after restoring
         get().removeHistory(idx);
         return historyItem.userId;
+      },
+
+      fetchRecentSessions: async () => {
+        set({ loading: true });
+        try {
+          const res = await api.getRecentCallInteractions();
+          if (res.data && res.data.sessions) {
+            set({ sessions: res.data.sessions, loading: false });
+          } else {
+            set({ loading: false });
+          }
+        } catch (error) {
+          console.error('Error fetching recent sessions:', error);
+          set({ loading: false });
+        }
       }
     }),
-    {
-      name: STORE_NAME,
-      storage: createJSONStorage(() => localStorage),
-    }
+    // {
+    //   name: STORE_NAME,
+    //   storage: createJSONStorage(() => localStorage),
+    // }
   )
 );
 

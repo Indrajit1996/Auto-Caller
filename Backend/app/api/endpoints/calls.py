@@ -7,6 +7,8 @@ import json
 
 from fastapi import APIRouter, HTTPException, Request, Response
 from fastapi.responses import FileResponse, StreamingResponse
+import asyncio
+from collections import defaultdict
 from pydantic import BaseModel, field_validator
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.date import DateTrigger
@@ -24,6 +26,9 @@ logger = logging.getLogger(__name__)
 twilio_service = TwilioService()
 
 router = APIRouter()
+
+# SSE connections storage: call_sid -> list of queues
+sse_connections: defaultdict = defaultdict(list)
 
 class CallRequest(BaseModel):
     to: str
@@ -237,6 +242,121 @@ async def get_call_status(call_sid: str):
         logger.error(f"Error getting call status: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/stream/{call_sid}")
+async def stream_call_status(call_sid: str):
+    """SSE endpoint to stream call status updates."""
+    logger.info(f"Call started   -------------> adsnkjandnjkaj{call_sid}")
+    async def event_generator():
+        queue = asyncio.Queue()
+        sse_connections[call_sid].append(queue)
+
+        try:
+            # Send initial connection message
+            yield f"data: {json.dumps({'status': 'connected', 'message': 'SSE connected'})}\n\n"
+
+            while True:
+                # Wait for status update
+                data = await queue.get()
+
+                # Send SSE event
+                yield f"data: {json.dumps(data)}\n\n"
+
+                # If call ended, close connection
+                if data.get("status") == "completed":
+                    break
+        except asyncio.CancelledError:
+            logger.info(f"SSE connection closed for call {call_sid}")
+        finally:
+            sse_connections[call_sid].remove(queue)
+            if not sse_connections[call_sid]:
+                del sse_connections[call_sid]
+
+    logger.info(f"Sending Data to FE --------> {call_sid}")
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"
+        }
+    )
+
+async def broadcast_call_status(call_sid: str, status_data: dict):
+    """Broadcast call status to all SSE listeners."""
+    logger.info(f"[{call_sid}] Broadcasting status: {status_data} to {len(sse_connections.get(call_sid, []))} listeners")
+    if call_sid in sse_connections:
+        for queue in sse_connections[call_sid]:
+            await queue.put(status_data)
+    else:
+        logger.warning(f"[{call_sid}] No SSE connections found for this call")
+
+@router.post("/status-callback")
+async def call_status_callback(request: Request):
+    """Twilio status callback webhook - called when call status changes."""
+    form_data = await request.form()
+    call_sid = form_data.get("CallSid", "")
+    call_status = form_data.get("CallStatus", "")
+
+    logger.info(f"[{call_sid}] Twilio status callback: {call_status}")
+
+    # Update database
+    db = SessionLocal()
+    try:
+        call_session = db.query(CallSession).filter(CallSession.call_sid == call_sid).first()
+        if call_session:
+            call_session.status = call_status
+
+            # If call ended, set end time
+            if call_status in ["completed", "busy", "no-answer", "failed", "canceled"]:
+                call_session.end_time = datetime.now(timezone.utc)
+
+                # Fetch all interactions for this call
+                interactions = db.query(CallInteraction).filter(
+                    CallInteraction.call_session_id == call_session.id
+                ).order_by(CallInteraction.sequence_number).all()
+
+                # Format interactions data
+                interactions_data = []
+                for interaction in interactions:
+                    interactions_data.append({
+                        "id": interaction.id,
+                        "type": interaction.interaction_type,
+                        "sequence": interaction.sequence_number,
+                        "transcript": interaction.speech_result,
+                        "confidence": interaction.speech_confidence,
+                        "system_response": interaction.system_response,
+                        "audio_url": interaction.s3_audio_url,  # USER's speech audio (transcript audio)
+                        "system_audio_url": interaction.system_audio_url,  # AI's response audio
+                        "processing_time": interaction.processing_time
+                    })
+
+                # Broadcast call ended with interactions
+                await broadcast_call_status(call_sid, {
+                    "status": "completed",
+                    "message": f"Call {call_status}",
+                    "twilio_status": call_status,
+                    "interactions": interactions_data,
+                    "call_session": {
+                        "id": call_session.id,
+                        "call_sid": call_session.call_sid,
+                        "from_number": call_session.from_number,
+                        "to_number": call_session.to_number,
+                        "start_time": call_session.start_time.isoformat() if call_session.start_time else None,
+                        "end_time": call_session.end_time.isoformat() if call_session.end_time else None,
+                        "duration": call_session.duration
+                    }
+                })
+
+            db.commit()
+    except Exception as db_error:
+        logger.error(f"[{call_sid}] Database error in status callback: {db_error}")
+        db.rollback()
+    finally:
+        db.close()
+
+    return Response(content="OK", status_code=200)
+
 @router.post("/handle-speech")
 async def handle_speech(request: Request):
     """Handle speech input from interactive calls - optimized for 300k users."""
@@ -310,6 +430,92 @@ async def handle_speech(request: Request):
         return Response(content=error_twiml, media_type="application/xml")
 
 
+@router.post("/gather-recording-callback")
+async def gather_recording_callback(request: Request):
+    """Handle recording callback from Gather with recordingEnabled=true."""
+    print("="*80)
+    print(f"[GATHER-RECORDING-CALLBACK] *** WEBHOOK TRIGGERED ***")
+    print("="*80)
+    try:
+        form_data = await request.form()
+
+        # Log ALL form data to debug
+        print(f"[GATHER-RECORDING-CALLBACK] ALL FORM DATA:")
+        for key, value in form_data.items():
+            print(f"[GATHER-RECORDING-CALLBACK]   {key}: {value}")
+
+        recording_url = form_data.get("RecordingUrl", "")
+        recording_sid = form_data.get("RecordingSid", "")
+        call_sid = form_data.get("CallSid", "")
+        recording_duration = form_data.get("RecordingDuration", "0")
+
+        print(f"[GATHER-RECORDING-CALLBACK] Call {call_sid}: Recording {recording_sid}, duration: {recording_duration}s")
+        print(f"[GATHER-RECORDING-CALLBACK] Recording URL: {recording_url}")
+        logger.info(f"[{call_sid}] Gather recording callback: {recording_sid}, duration: {recording_duration}s")
+
+        # Check if we have a recording URL
+        if not recording_url or not recording_sid:
+            print(f"[GATHER-RECORDING-CALLBACK] WARNING: Missing recording URL or SID!")
+            print(f"[GATHER-RECORDING-CALLBACK] recording_url: '{recording_url}'")
+            print(f"[GATHER-RECORDING-CALLBACK] recording_sid: '{recording_sid}'")
+            return Response(content="OK - No recording", status_code=200)
+
+        # Download and store recording in S3 - THIS IS USER SPEECH AUDIO
+        print(f"[GATHER-RECORDING-CALLBACK] Starting S3 upload for user speech audio...")
+        s3_recording_url = None
+        try:
+            s3_recording_url = twilio_service.download_and_store_recording(recording_url, call_sid)
+            if s3_recording_url:
+                print(f"[GATHER-RECORDING-CALLBACK] SUCCESS: User speech stored in S3: {s3_recording_url}")
+                logger.info(f"[{call_sid}] Stored user speech recording in S3: {s3_recording_url}")
+            else:
+                print(f"[GATHER-RECORDING-CALLBACK] ERROR: Failed to get S3 URL for user speech")
+                logger.error(f"[{call_sid}] Failed to get S3 URL for user speech recording")
+        except Exception as e:
+            print(f"[GATHER-RECORDING-CALLBACK] EXCEPTION during S3 upload: {e}")
+            logger.warning(f"[{call_sid}] Failed to download user speech recording to S3: {e}")
+
+        # Update the most recent user interaction with the recording URL
+        print(f"[GATHER-RECORDING-CALLBACK] Updating database with recording URLs...")
+        db = SessionLocal()
+        try:
+            call_session = db.query(CallSession).filter(CallSession.call_sid == call_sid).first()
+            if call_session:
+                # Get the most recent speech interaction (user's speech)
+                latest_interaction = db.query(CallInteraction).filter(
+                    CallInteraction.call_session_id == call_session.id,
+                    CallInteraction.interaction_type == "speech",
+                    CallInteraction.system_response == None  # User speech has no system_response
+                ).order_by(CallInteraction.sequence_number.desc()).first()
+
+                if latest_interaction:
+                    latest_interaction.recording_sid = recording_sid
+                    latest_interaction.recording_url = recording_url
+                    latest_interaction.s3_audio_url = s3_recording_url
+                    latest_interaction.recording_duration = int(recording_duration) if recording_duration else None
+                    db.commit()
+                    print(f"[GATHER-RECORDING-CALLBACK] Database updated - Interaction ID: {latest_interaction.id}")
+                    print(f"[GATHER-RECORDING-CALLBACK] - Recording SID: {recording_sid}")
+                    print(f"[GATHER-RECORDING-CALLBACK] - S3 URL: {s3_recording_url}")
+                    logger.info(f"[{call_sid}] Updated user interaction {latest_interaction.id} with recording URL")
+                else:
+                    print(f"[GATHER-RECORDING-CALLBACK] WARNING: No user speech interaction found to update")
+                    logger.warning(f"[{call_sid}] No user speech interaction found to update with recording")
+            else:
+                print(f"[GATHER-RECORDING-CALLBACK] WARNING: No call session found for call_sid: {call_sid}")
+        except Exception as db_error:
+            print(f"[GATHER-RECORDING-CALLBACK] Database error: {db_error}")
+            logger.error(f"[{call_sid}] Database error updating user speech recording: {db_error}")
+            db.rollback()
+        finally:
+            db.close()
+
+        return Response(content="OK", status_code=200)
+
+    except Exception as e:
+        logger.error(f"Error handling gather recording callback: {e}")
+        return Response(content="Error", status_code=500)
+
 @router.post("/handle-recording")
 async def handle_recording(request: Request):
     """Handle recording from interactive calls - store audio and continue conversation."""
@@ -319,26 +525,44 @@ async def handle_recording(request: Request):
         recording_sid = form_data.get("RecordingSid", "")
         call_sid = form_data.get("CallSid", "")
         recording_duration = form_data.get("RecordingDuration", "0")
+        print(f"[HANDLE-RECORDING] Processing recording for call {call_sid}: {recording_sid}, duration: {recording_duration}s")
         logger.info(f"Processing recording for call {call_sid}: {recording_sid}, duration: {recording_duration}s")
 
-        # Use the Twilio recording URL directly instead of downloading
-        twilio_recording_url = recording_url
-        s3_recording_url = None
-        whisper_transcript = None
+        # Check if this is a user audio recording (has RecordingUrl) or system-generated text
+        if recording_url and recording_sid:
+            # USER AUDIO INPUT - Always store in S3
+            print(f"[HANDLE-RECORDING] Detected user audio recording: {recording_sid}")
+            twilio_recording_url = recording_url
+            whisper_transcript = None
 
-        try:
+            # MANDATORY: Download and store user recording in S3
+            print(f"[HANDLE-RECORDING] Downloading and storing recording in S3...")
             s3_recording_url = twilio_service.download_and_store_recording(recording_url, call_sid)
-            if s3_recording_url:
-                try:
-                    whisper_transcript = twilio_service.transcribe_audio_with_whisper(recording_url)
-                except Exception as e:
-                    logger.warning(f"Failed to transcribe with Whisper: {e}")
-        except Exception as e:
-            logger.warning(f"Failed to download recording to S3: {e}")
 
-        logger.info(f"Twilio recording URL: {twilio_recording_url}")
-        logger.info(f"S3 recording URL: {s3_recording_url}")
-        logger.info(f"Whisper transcript: {whisper_transcript}")
+            if not s3_recording_url:
+                print(f"[HANDLE-RECORDING] ERROR: Failed to store user recording in S3 for call {call_sid}")
+                logger.error(f"CRITICAL: Failed to store user recording in S3 for call {call_sid}")
+            else:
+                print(f"[HANDLE-RECORDING] SUCCESS: Stored user recording in S3: {s3_recording_url}")
+
+            # Optional: Try to transcribe with Whisper
+            try:
+                whisper_transcript = twilio_service.transcribe_audio_with_whisper(recording_url)
+                if whisper_transcript:
+                    print(f"[HANDLE-RECORDING] Whisper transcription: {whisper_transcript}")
+            except Exception as e:
+                print(f"[HANDLE-RECORDING] Failed to transcribe with Whisper: {e}")
+                logger.warning(f"Failed to transcribe with Whisper: {e}")
+
+            print(f"[HANDLE-RECORDING] Twilio recording URL: {twilio_recording_url}")
+            print(f"[HANDLE-RECORDING] S3 recording URL: {s3_recording_url}")
+            print(f"[HANDLE-RECORDING] Whisper transcript: {whisper_transcript}")
+        else:
+            # SYSTEM-GENERATED TEXT - No recording to store
+            print(f"[HANDLE-RECORDING] No user recording detected, using system-generated response")
+            twilio_recording_url = None
+            s3_recording_url = None
+            whisper_transcript = None
         
         # --- DB LOGIC START ---
         db = SessionLocal()
@@ -469,18 +693,121 @@ async def respond_and_record(request: Request):
     import time
     start_time = time.monotonic()
     logger.info(f"=== CONVERSATION START: {start_time} ===")
-    
+    print('User responded ------------------->', request)
     try:
         # Get form data from Twilio
         form_data = await request.form()
-        
+
+        # Log ALL form data for debugging
+        print(f"[RESPOND-AND-RECORD] === ALL FORM DATA ===")
+        for key, value in form_data.items():
+            print(f"[RESPOND-AND-RECORD] {key}: {value}")
+        print(f"[RESPOND-AND-RECORD] === END FORM DATA ===")
+
         # Extract parameters
         call_sid = form_data.get("CallSid", "")
         speech_text = form_data.get("SpeechResult", "")
         confidence = form_data.get("Confidence", "0")
-        
+        recording_url = form_data.get("RecordingUrl", "")
+        recording_sid = form_data.get("RecordingSid", "")
+
+        print(f"[RESPOND-AND-RECORD] CallSid: {call_sid}")
+        print(f"[RESPOND-AND-RECORD] SpeechResult: {speech_text}")
+        print(f"[RESPOND-AND-RECORD] RecordingUrl: {recording_url}")
+        print(f"[RESPOND-AND-RECORD] RecordingSid: {recording_sid}")
+
         logger.info(f"[{call_sid}] User said: '{speech_text}' (confidence: {confidence}) - elapsed: {time.monotonic() - start_time:.2f}s")
-        
+
+        # Get or create call session
+        db = SessionLocal()
+        call_session_id = None
+        user_interaction_id = None
+        try:
+            # Get or create call session
+            call_session = db.query(CallSession).filter(CallSession.call_sid == call_sid).first()
+            if not call_session:
+                call_session = CallSession(
+                    id=str(uuid.uuid4()),
+                    call_sid=call_sid,
+                    from_number=form_data.get("From", ""),
+                    to_number=form_data.get("To", ""),
+                    status="in-progress"
+                )
+                db.add(call_session)
+                db.commit()
+                db.refresh(call_session)
+
+                # Broadcast call started
+                await broadcast_call_status(call_sid, {
+                    "status": "in-progress",
+                    "message": "Call in progress"
+                })
+
+            # Store call_session_id before closing the session
+            call_session_id = call_session.id
+
+            # Get next sequence number
+            max_sequence = db.query(CallInteraction).filter(
+                CallInteraction.call_session_id == call_session_id
+            ).count()
+
+            # Create interaction with user's speech (will add AI response later)
+            if speech_text:
+                user_interaction = CallInteraction(
+                    id=str(uuid.uuid4()),
+                    call_session_id=call_session_id,
+                    interaction_type="speech",
+                    sequence_number=max_sequence + 1,
+                    speech_result=speech_text,
+                    speech_confidence=float(confidence) if confidence else None
+                )
+                db.add(user_interaction)
+                db.commit()
+                db.refresh(user_interaction)
+                user_interaction_id = user_interaction.id
+
+                # Try to fetch the most recent recording from Twilio API
+                # Since Twilio doesn't include recording in this request, we need to fetch it
+                print(f"[RESPOND-AND-RECORD] No recording URL in form data - fetching from Twilio API...")
+                try:
+                    import time
+                    time.sleep(1)  # Wait 1 second for Twilio to process the recording
+
+                    # Fetch recordings for this call from Twilio
+                    from app.services.twilio_service import twilio_service as tw_service
+                    recordings = tw_service.client.recordings.list(call_sid=call_sid, limit=1)
+                    print(f"[RESPOND-AND-RECORD] recording url value  {call_sid}")
+                    print(f"[RESPOND-AND-RECORD] recording url value  {recordings}")
+                    if recordings:
+                        latest_recording = recordings[0]
+                        recording_sid = latest_recording.sid
+                        recording_url = f"https://api.twilio.com{latest_recording.uri.replace('.json', '')}"
+
+                        print(f"[RESPOND-AND-RECORD] Found recording: {recording_sid}")
+                        print(f"[RESPOND-AND-RECORD] Recording URL: {recording_url}")
+
+                        # Download and store in S3
+                        s3_audio_url = twilio_service.download_and_store_recording(recording_url, call_sid)
+                        if s3_audio_url:
+                            print(f"[RESPOND-AND-RECORD] SUCCESS: Stored recording in S3: {s3_audio_url}")
+                            user_interaction.s3_audio_url = s3_audio_url
+                            user_interaction.recording_sid = recording_sid
+                            user_interaction.recording_url = recording_url
+                            db.commit()
+                        else:
+                            print(f"[RESPOND-AND-RECORD] ERROR: Failed to download recording")
+                    else:
+                        print(f"[RESPOND-AND-RECORD] No recordings found for this call yet")
+                except Exception as rec_error:
+                    print(f"[RESPOND-AND-RECORD] EXCEPTION fetching recording: {rec_error}")
+                    import traceback
+                    traceback.print_exc()
+        except Exception as db_error:
+            logger.error(f"[{call_sid}] Database error storing user speech: {db_error}")
+            db.rollback()
+        finally:
+            db.close()
+
         # Check for goodbye keywords only
         goodbye_keywords = ["goodbye", "bye", "good bye", "see you", "talk to you later", "end call", "hang up"]
         is_goodbye = any(keyword.lower() in speech_text.lower() for keyword in goodbye_keywords)
@@ -496,6 +823,26 @@ async def respond_and_record(request: Request):
                     message = "Thank you for talking with me. Take care and have a wonderful day!"
             else:
                 message = "Thank you for talking with me. Take care and have a wonderful day!"
+
+            # Update call status to completed
+            db = SessionLocal()
+            try:
+                call_session = db.query(CallSession).filter(CallSession.call_sid == call_sid).first()
+                if call_session:
+                    call_session.status = "completed"
+                    call_session.end_time = datetime.now(timezone.utc)
+                    db.commit()
+
+                    # Broadcast call ended
+                    await broadcast_call_status(call_sid, {
+                        "status": "completed",
+                        "message": "Call ended"
+                    })
+            except Exception as db_error:
+                logger.error(f"[{call_sid}] Database error updating call status: {db_error}")
+                db.rollback()
+            finally:
+                db.close()
         else:
             # Generate normal conversation response
             openai_start = time.monotonic()
@@ -543,15 +890,19 @@ async def respond_and_record(request: Request):
         # Set up recording and listening for next response
         webhook_base_url = os.getenv("WEBHOOK_BASE_URL", "http://localhost:8000")
         conversation_webhook = f"{webhook_base_url}/api/calls/respond-and-record"
-        
-        # Smart speech recognition with auto timeout
+        recording_status_callback = f"{webhook_base_url}/api/calls/gather-recording-callback"
+
+        # Smart speech recognition with auto timeout and recording enabled
         gather = twiml.gather(
             input="speech",
             timeout=3,
             speech_timeout="auto",
             action=conversation_webhook,
             method="POST",
-            speech_model="phone_call"
+            speech_model="phone_call",
+            recording_enabled=True,
+            recording_status_callback=recording_status_callback,
+            recording_status_callback_method="POST"
         )
         
         # Try to generate ElevenLabs audio for "I am listening"
@@ -570,6 +921,46 @@ async def respond_and_record(request: Request):
             logger.error(f"[{call_sid}] Failed to generate ElevenLabs audio for 'I am listening' after {listening_end - start_time:.2f}s: {e}")
             gather.say("I am listening", voice="alice", language="en-US")
         
+        # Update the same interaction with AI response
+        db = SessionLocal()
+        try:
+            if user_interaction_id:
+                # Update the existing user interaction with AI response
+                user_interaction = db.query(CallInteraction).filter(
+                    CallInteraction.id == user_interaction_id
+                ).first()
+                if user_interaction:
+                    user_interaction.system_response = message
+                    user_interaction.system_audio_url = audio_url
+                    user_interaction.processing_time = time.monotonic() - start_time
+                    db.commit()
+                    logger.info(f"[{call_sid}] Updated interaction {user_interaction_id} with AI response")
+            else:
+                # If no user interaction was created (e.g., empty speech), create a new one with AI response only
+                call_session = db.query(CallSession).filter(CallSession.call_sid == call_sid).first()
+                if call_session:
+                    max_sequence = db.query(CallInteraction).filter(
+                        CallInteraction.call_session_id == call_session.id
+                    ).count()
+
+                    ai_interaction = CallInteraction(
+                        id=str(uuid.uuid4()),
+                        call_session_id=call_session.id,
+                        interaction_type="speech",
+                        sequence_number=max_sequence + 1,
+                        system_response=message,
+                        system_audio_url=audio_url,
+                        processing_time=time.monotonic() - start_time
+                    )
+                    db.add(ai_interaction)
+                    db.commit()
+                    logger.info(f"[{call_sid}] Created new interaction with AI response only")
+        except Exception as db_error:
+            logger.error(f"[{call_sid}] Database error storing AI response: {db_error}")
+            db.rollback()
+        finally:
+            db.close()
+
         twiml_end = time.monotonic()
         logger.info(f"[{call_sid}] TwiML generation completed in {twiml_end - twiml_start:.2f}s - total elapsed: {twiml_end - start_time:.2f}s")
         logger.info(f"[{call_sid}] CONVERSATION COMPLETE - Total time: {twiml_end - start_time:.2f}s")
@@ -608,6 +999,8 @@ def _generate_response_to_user(user_message: str) -> str:
 def _process_speech_input(speech_text: str) -> tuple[str, bool]:
     """Process speech input and return appropriate response and end_call flag."""
     logger.info(f"Processing speech input: '{speech_text}'")
+    
+    
     
     # Simple keyword-based responses
     if "hello" in speech_text or "hi" in speech_text:
@@ -664,9 +1057,11 @@ async def get_recent_interactions():
     """Get recent call sessions with interactions (audio + transcripts) for dashboard."""
     try:
         db = SessionLocal()
+        logger.info(f"Here --------------->")
+        # logger.info(f"Interactions {interactions}")
         try:
-            # Get last 5 call sessions with their interactions
-            sessions = db.query(CallSession).order_by(CallSession.created_at.desc()).limit(5).all()
+            # Get last 50 call sessions with their interactions
+            sessions = db.query(CallSession).order_by(CallSession.created_at.desc()).limit(50).all()
             
             result = []
             for session in sessions:
@@ -686,13 +1081,16 @@ async def get_recent_interactions():
                     "interactions": []
                 }
                 
+                
                 for interaction in interactions:
                     interaction_data = {
                         "id": interaction.id,
                         "type": interaction.interaction_type,
                         "sequence": interaction.sequence_number,
                         "transcript": interaction.transcription_text or interaction.speech_result,
-                        "audio_url": interaction.s3_audio_url,
+                        "system_response": interaction.system_response,
+                        "audio_url": interaction.s3_audio_url,  # USER's speech audio (transcript audio)
+                        "system_audio_url": interaction.system_audio_url,  # AI's response audio
                         "recording_duration": interaction.recording_duration,
                         "confidence": interaction.speech_confidence or interaction.transcription_confidence,
                         "created_at": interaction.created_at.isoformat() if interaction.created_at else None,

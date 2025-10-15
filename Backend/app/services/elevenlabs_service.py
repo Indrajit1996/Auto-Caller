@@ -16,11 +16,13 @@ class ElevenLabsService:
         self.voice_id = os.getenv("ELEVENLABS_VOICE_ID", "Zdsf4NBMlHR5zJJ72y9q")  # Kaymi Malave - Puerto Rican female voice
         
         # AWS S3 setup for audio storage
+        aws_region = os.getenv("AWS_REGION", 'us-east-2')
         self.s3_client = boto3.client(
             's3',
             aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
             aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
-            region_name=os.getenv("AWS_REGION", 'us-east-1')
+            region_name=aws_region,
+            config=boto3.session.Config(signature_version='s3v4', region_name=aws_region)
         )
         self.s3_bucket = os.getenv("AWS_S3_BUCKET")
         
@@ -31,9 +33,9 @@ class ElevenLabsService:
         # Ensure S3 bucket is properly configured for public access
         self._ensure_bucket_public_access()
     
-    async def generate_speech_and_upload(
-        self, 
-        text: str, 
+    def generate_speech_and_upload(
+        self,
+        text: str,
         voice_id: str = None,
         file_name: str = None
     ) -> Tuple[Optional[str], Optional[bytes]]:
@@ -42,51 +44,60 @@ class ElevenLabsService:
         Returns (s3_url, audio_bytes) tuple.
         """
         try:
+            print(f'IN generate_speech_and_upload function')
             voice = voice_id or self.voice_id
             url = f"{self.base_url}/text-to-speech/{voice}"
-            
+
             headers = {
                 "xi-api-key": self.api_key,
                 "Content-Type": "application/json"
             }
-            
+
+            # Add pauses to slow down speech
+            slowed_text = text.replace(".", "... ").replace(",", ",, ").replace("!", "!... ")
+
             payload = {
-                "text": text,
+                "text": slowed_text,
                 "model_id": "eleven_turbo_v2",
                 "voice_settings": {
                     "stability": 0.5,
-                    "similarity_boost": 0.5
-                }
+                    "similarity_boost": 0.5,
+                    "speaking_rate": 1.0
+                },
+                "optimization_level": 0
             }
-            
+
             logger.info(f"Making request to ElevenLabs: {url}")
             logger.info(f"ElevenLabs payload: {payload}")
-            
-            response = requests.post(url, json=payload, headers=headers)
+            print(f'[ELEVENLABS] Request URL: {url}')
+            print(f'[ELEVENLABS] Payload: {payload}')
+
+            response = requests.post(url, json=payload, headers=headers, timeout=30)
             response.raise_for_status()
-            
+
             audio_bytes = response.content
             logger.info(f"Received {len(audio_bytes)} bytes from ElevenLabs")
-            
+
             # Upload to S3
-            s3_url = await self._upload_to_s3(audio_bytes, file_name)
-            
+            s3_url = self._upload_to_s3(audio_bytes, file_name)
+
             return s3_url, audio_bytes
-            
+
         except Exception as e:
             logger.error(f"ElevenLabs TTS error: {e}")
             return None, None
     
-    async def _upload_to_s3(self, audio_bytes: bytes, file_name: str = None) -> Optional[str]:
+    def _upload_to_s3(self, audio_bytes: bytes, file_name: str = None) -> Optional[str]:
         """
-        Upload audio bytes to S3 and return public URL.
+        Upload audio bytes to S3 and return presigned URL.
         """
         try:
+            print(f'IN _upload_to_s3 function')
             if not file_name:
                 file_name = f"elevenlabs_audio_{uuid.uuid4()}.mp3"
-            
+
             s3_key = f"audio/elevenlabs/{file_name}"
-            
+
             # Upload to S3 (no ACL needed)
             self.s3_client.put_object(
                 Bucket=self.s3_bucket,
@@ -94,33 +105,33 @@ class ElevenLabsService:
                 Body=audio_bytes,
                 ContentType='audio/mpeg'
             )
-            
-            # Generate presigned URL for secure access
-            presigned_url = self.s3_client.generate_presigned_url(
-                'get_object',
-                Params={'Bucket': self.s3_bucket, 'Key': s3_key},
-                ExpiresIn=3600  # 1 hour expiration
-            )
-            logger.info(f"Generated presigned URL for ElevenLabs audio: {presigned_url}")
-            return presigned_url
-            
+
+            # Generate public URL (bucket policy allows public read access)
+            aws_region = os.getenv("AWS_REGION", "us-east-2")
+            public_url = f"https://{self.s3_bucket}.s3.{aws_region}.amazonaws.com/{s3_key}"
+
+            logger.info(f"Uploaded to S3: {s3_key}")
+            logger.info(f"Generated public URL for ElevenLabs audio: {public_url}")
+            return public_url
+
         except Exception as e:
             logger.error(f"S3 upload error: {e}")
             return None
     
-    async def generate_speech_only(self, text: str, voice_id: str = None) -> Optional[bytes]:
+    def generate_speech_only(self, text: str, voice_id: str = None) -> Optional[bytes]:
         """
         Generate speech without S3 upload (for direct use).
         """
         try:
+            print(f'IN generate_speech_only function')
             voice = voice_id or self.voice_id
             url = f"{self.base_url}/text-to-speech/{voice}"
-            
+
             headers = {
                 "xi-api-key": self.api_key,
                 "Content-Type": "application/json"
             }
-            
+
             payload = {
                 "text": text,
                 "model_id": "eleven_turbo_v2",
@@ -129,12 +140,12 @@ class ElevenLabsService:
                     "similarity_boost": 0.5
                 }
             }
-            
+            print(f'[ELEVENLABS] IN GENERATE SPEECH ONLY - Payload: {payload}')
             response = requests.post(url, json=payload, headers=headers)
             response.raise_for_status()
-            
+
             return response.content
-            
+
         except Exception as e:
             logger.error(f"ElevenLabs TTS error: {e}")
             return None
@@ -144,6 +155,7 @@ class ElevenLabsService:
         Ensure S3 bucket is configured for public read access.
         """
         try:
+            print(f'IN _ensure_bucket_public_access function')
             # Check if bucket exists and is accessible
             self.s3_client.head_bucket(Bucket=self.s3_bucket)
             logger.info(f"S3 bucket {self.s3_bucket} is accessible")
@@ -179,6 +191,7 @@ class ElevenLabsService:
         List available ElevenLabs voices.
         """
         try:
+            print(f'IN list_voices function')
             url = f"{self.base_url}/voices"
             headers = {"xi-api-key": self.api_key}
             

@@ -1,17 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { Box, Typography, Card, CardContent, Divider, Chip, Alert } from '@mui/material';
-import api from '@/api';
+import useConversationStore from '@/store/conversationStore';
 
 const RecentCalls = () => {
-  const [sessions, setSessions] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const sessions = useConversationStore((state) => state.sessions);
+  const loading = useConversationStore((state) => state.loading);
+  const fetchRecentSessions = useConversationStore((state) => state.fetchRecentSessions);
 
-  useEffect(() => {
-    api.getRecentCallInteractions().then(res => {
-      if (res.data && res.data.sessions) setSessions(res.data.sessions);
-      setLoading(false);
-    });
-  }, []);
+  // useEffect(() => {
+  //   debugger
+  //   fetchRecentSessions();
+  // }, []);
 
   const formatDate = (dateString) => {
     if (!dateString) return 'Unknown';
@@ -34,7 +33,7 @@ const RecentCalls = () => {
     const match = url.match(/Recordings\/([A-Za-z0-9]+)(\.mp3)?/);
     return match ? match[1] : '';
   }
-
+  console.log('sessions', sessions)
   return (
     <Box>
       <Typography variant="h6" sx={{ mb: 2 }}>Recent Calls (Audio & Transcript)</Typography>

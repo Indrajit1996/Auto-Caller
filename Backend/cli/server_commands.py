@@ -95,7 +95,11 @@ def run_server(
     ] = config.API_TIMEOUT_IN_SECONDS,
 ) -> None:
     """Run the application server."""
-    if workers is None:
+    # Auto-reload only works with a single worker
+    if reload and workers != 1:
+        console.print("[yellow]⚠️  Auto-reload enabled, forcing workers=1[/yellow]")
+        workers = 1
+    elif workers is None:
         workers = 1 if config.is_local else min((os.cpu_count() or 1) * 2 + 1, 8)
 
     if log_level is None:
@@ -125,21 +129,28 @@ def run_server(
     console.print(panel)
     console.line()
 
-    uvicorn.run(
-        app="app.main:app",
-        host=host,
-        port=port,
-        log_level=log_level,
-        workers=workers,
-        limit_concurrency=1000,
-        limit_max_requests=10000,
-        timeout_keep_alive=5,
-        timeout_graceful_shutdown=timeout,
-        proxy_headers=True,
-        forwarded_allow_ips="*" if not config.is_local else "127.0.0.1",
-        use_colors=True,
-        reload=reload,
-    )
+    uvicorn_config = {
+        "app": "app.main:app",
+        "host": host,
+        "port": port,
+        "log_level": log_level,
+        "workers": workers,
+        "limit_concurrency": 1000,
+        "limit_max_requests": 10000,
+        "timeout_keep_alive": 5,
+        "timeout_graceful_shutdown": timeout,
+        "proxy_headers": True,
+        "forwarded_allow_ips": "*" if not config.is_local else "127.0.0.1",
+        "use_colors": True,
+        "reload": reload,
+    }
+
+    # Add reload-specific configuration
+    if reload:
+        uvicorn_config["reload_dirs"] = ["app", "cli", "data_pipeline"]
+        uvicorn_config["reload_excludes"] = ["*.pyc", "*.pyo", "__pycache__", ".pytest_cache", ".venv", "logs"]
+
+    uvicorn.run(**uvicorn_config)
 
 
 @server_app.command("prestart")

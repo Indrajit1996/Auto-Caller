@@ -21,4 +21,4 @@ ENV PATH="/app/.venv/bin:$PATH"
 # Reset the entrypoint, don't invoke `uv`
 ENTRYPOINT []
 
-CMD ["kcli", "server", "run", "--host", "0.0.0.0", "--port", "8000", "--no-reload"]
+CMD ["kcli", "server", "run", "--host", "0.0.0.0", "--port", "8000", "--reload"]

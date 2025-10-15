@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
-import { 
-  Box, 
-  Button, 
-  Typography, 
-  List, 
-  ListItem, 
+import React, { useState, useEffect } from 'react';
+import {
+  Box,
+  Button,
+  Typography,
+  List,
+  ListItem,
   ListItemAvatar,
   ListItemText,
   Avatar,
@@ -19,21 +19,38 @@ import ConversationView from '@/components/ConversationView';
 import useConversationStore from '@/store/conversationStore';
 import { ROUTES } from '@/constants/routeConstants';
 
-const sidebarUsers = [
-  { id: 1, name: 'Sachin' },
-  { id: 2, name: 'Indra' },
-];
-
 const ConversationPage = () => {
   const navigate = useNavigate();
-  const { 
-    conversations, 
+  const {
+    conversations,
     setConversations,
     addHistory,
-    clearConversationsForUser 
+    clearConversationsForUser,
+    sessions,
+    fetchRecentSessions,
   } = useConversationStore();
 
+  // Map sessions to sidebarUsers with hardcoded names based on ID
+  const sidebarUsers = sessions.map((session, index) => ({
+    id: session.id,
+    name: `User ${session.id}`,
+    ...session,
+  }));
+
   const [selectedChat, setSelectedChat] = useState(null);
+
+  // Fetch sessions on component mount
+  useEffect(() => {
+    fetchRecentSessions();
+  }, []);
+
+  // Update selectedChat when sessions are loaded
+  useEffect(() => {
+    if (sessions.length > 0 && !selectedChat) {
+
+      setSelectedChat(sidebarUsers[0]);
+    }
+  }, [sessions]);
 
   const handleCloseChat = () => {
     if (selectedChat) {
@@ -51,6 +68,7 @@ const ConversationPage = () => {
     // TODO: Implement add more names functionality
     console.log('Add more names clicked');
   };
+  console.log('selectedChat', selectedChat)
 
   return (
     <Box sx={{ width: '100%', display: 'flex', height: '100vh' }}>
@@ -59,7 +77,7 @@ const ConversationPage = () => {
         width: 320, 
         borderRight: '1px solid #e0e0e0',
         display: 'flex',
-        flexDirection: 'column'
+        flexDirection: 'column',
       }}>
         <Box sx={{ 
           p: 2, 
@@ -77,14 +95,20 @@ const ConversationPage = () => {
           </Tooltip>
         </Box>
         
-        <List sx={{ width: '100%', bgcolor: 'background.paper', p: 0 }}>
+        <List sx={{ 
+            width: '100%', 
+            bgcolor: 'background.paper', 
+            p: 0, cursor: 'pointer', 
+            maxHeight: '90%',
+            overflowY: 'auto', 
+          }}>
           {sidebarUsers.map((chat, index) => (
             <React.Fragment key={chat.id}>
               <ListItem 
                 alignItems="flex-start"
                 button
                 selected={selectedChat === chat.id}
-                onClick={() => setSelectedChat(chat.id)}
+                onClick={() => setSelectedChat(chat)}
                 sx={{ 
                   px: 2,
                   py: 1.5,
@@ -150,6 +174,7 @@ const ConversationPage = () => {
             setConversations={setConversations}
             sidebarUsers={sidebarUsers}
             onSummaryUpdate={() => {}}
+            sessions={sessions}
           />
         </Box>
       ) : (

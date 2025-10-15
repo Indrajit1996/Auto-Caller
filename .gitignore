@@ -69,4 +69,4 @@ test-results/
 
 # Build outputs
 dist/
-build/ 
+build/ .env

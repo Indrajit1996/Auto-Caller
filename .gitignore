@@ -70,3 +70,4 @@ test-results/
 # Build outputs
 dist/
 build/ .env
+.env

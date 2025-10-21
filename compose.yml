@@ -56,6 +56,11 @@ services:
         - action: rebuild
           path: ./backend/uv.lock
     volumes:
+      - type: bind
+        source: ./backend
+        target: /app
+        consistency: cached
+      - /app/.venv
       - ./backend/logs:/app/logs
 
   frontend:

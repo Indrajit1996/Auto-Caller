@@ -1,7 +1,7 @@
 import os
 import logging
 import uuid
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Tuple
 from datetime import datetime
 import boto3  # Re-enabled
 from botocore.exceptions import ClientError  # Re-enabled
@@ -264,6 +264,43 @@ class TwilioService:
                 "success": False,
                 "error": str(e)
             }
+
+    def get_latest_recording_for_call(self, call_sid: str) -> Optional[Tuple[str, str]]:
+        """Return the most recent recording SID and media URL for a given call."""
+        if not call_sid:
+            logger.warning("get_latest_recording_for_call called without a call SID")
+            return None
+
+        if not self.client:
+            logger.warning("Twilio client not initialized - cannot fetch recordings")
+            return None
+
+        try:
+            recordings = self.client.calls(call_sid).recordings.list(limit=1)
+            if not recordings:
+                logger.debug(f"No recordings found yet for call {call_sid}")
+                return None
+
+            latest_recording = recordings[0]
+            recording_sid = latest_recording.sid
+            recording_url = latest_recording.media_url
+
+            if recording_url and not recording_url.endswith(".mp3"):
+                recording_url = f"{recording_url}.mp3"
+
+            logger.debug(
+                "Fetched recording for call %s - SID: %s, URL: %s",
+                call_sid,
+                recording_sid,
+                recording_url,
+            )
+            return recording_sid, recording_url
+        except TwilioException as exc:
+            logger.warning(f"Twilio error fetching recordings for {call_sid}: {exc}")
+            return None
+        except Exception as exc:
+            logger.error(f"Unexpected error fetching recordings for {call_sid}: {exc}")
+            return None
 
     def transcribe_audio_with_whisper(self, audio_url: str) -> Optional[str]:
         """Transcribe audio using OpenAI Whisper."""

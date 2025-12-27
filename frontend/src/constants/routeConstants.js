@@ -1,13 +1,14 @@
 export const ROUTES = Object.freeze({
   LANDING_PAGE: '/',
   AUTH: {
-    LOGIN: '/',
+    LOGIN: '/login',
     REGISTER: '/register',
     RESET_PASSWORD: '/reset-password',
     VERIFY_EMAIL: '/verify-email',
     FORGOT_PASSWORD: '/forgot-password',
   },
   LOGGED_IN_HOME: '/dashboard',
+  CONVERSATION: '/conversation',
   ADMIN: {
     USERS: '/admin/users',
     USERS_DETAIL: '/admin/users/:userId',

@@ -5,9 +5,11 @@ WORKDIR /app
 
 COPY package.json pnpm-lock.yaml ./
 
-RUN npm install -g pnpm && pnpm config set store-dir /app/node_modules/.pnpm-store
+RUN npm install -g pnpm
 
-RUN pnpm install --frozen-lockfile
+RUN pnpm install
+
+ENV ROLLUP_USE_NODE_JS=true
 
 COPY . .
 

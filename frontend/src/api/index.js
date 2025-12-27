@@ -81,6 +81,11 @@ const api = {
   put: (url, data, config = {}) => apiClient.put(url, data, config),
   delete: (url, config = {}) => apiClient.delete(url, config),
   patch: (url, data, config = {}) => apiClient.patch(url, data, config),
+  
+  // Call interactions for dashboard
+  getRecentCallInteractions: () => apiClient.get('/calls/recent-interactions'),
+  // Temp log version
+  getRecentCallInteractionsTemp: () => apiClient.get('/calls/recent-interactions-temp'),
 };
 
 export default api;

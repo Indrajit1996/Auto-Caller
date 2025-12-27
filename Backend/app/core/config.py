@@ -42,6 +42,7 @@ class Config(BaseSettings):
     """Application configuration settings."""
 
     model_config = SettingsConfigDict(
+        env_file=".env",
         env_ignore_empty=True,
         extra="ignore",
     )
@@ -102,6 +103,27 @@ class Config(BaseSettings):
     SENTRY_DSN: HttpUrl | None = None
     SENTRY_ENVIRONMENT: str | None = None
     SENTRY_RELEASE: str | None = None
+
+    # ==== Twilio ====
+    TWILIO_ACCOUNT_SID: str | None = None
+    TWILIO_AUTH_TOKEN: str | None = None
+    TWILIO_PHONE_NUMBER: str | None = None
+    WEBHOOK_BASE_URL: str | None = None
+
+    # ==== ElevenLabs ====
+    ELEVENLABS_API_KEY: str | None = None
+    ELEVENLABS_VOICE_ID: str = "Zdsf4NBMlHR5zJJ72y9q"  # Kaymi Malave - Puerto Rican female voice
+
+    # ==== OpenAI ====
+    OPENAI_API_KEY: str | None = None
+    OPENAI_CONVERSATION_API_KEY: str | None = None
+    OPENAI_MODEL: str = "gpt-3.5-turbo"
+
+    # ==== AWS ====
+    AWS_ACCESS_KEY_ID: str | None = None
+    AWS_SECRET_ACCESS_KEY: str | None = None
+    AWS_REGION: str = "us-east-2"
+    AWS_S3_BUCKET: str | None = None
 
     # ==== CORS ====
     # BACKEND_CORS_ORIGINS: Annotated[

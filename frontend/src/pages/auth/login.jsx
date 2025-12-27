@@ -40,7 +40,11 @@ export const Login = () => {
     try {
       await login(formData);
     } catch (error) {
-      setAlertData(error?.response?.data?.detail);
+      setAlertData({
+        message: error?.message?.title + '. ' + error?.message?.message,
+        severity: 'error',
+        status: error?.message?.status
+      });
     }
   };
 

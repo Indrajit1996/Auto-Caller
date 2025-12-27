@@ -9,7 +9,7 @@
 
 .title.title {
   width: 730px;
-  padding: 0px 80px;
+  padding: 0;
   font-size: 35px;
   font-weight: bold;
   font-style: normal;
@@ -20,8 +20,6 @@
   color: #ffffff;
   display: flex;
   align-items: center;
-  position: relative;
-  left: 20px;
 }
 
 .actionBox {
